@@ -16,6 +16,8 @@ mkdir -p "$OBJ"
 #   APP=nvk_tri TITLE="NVK Tri" VERSION="0.33.0-tri1a" bash winsys/build-nro.sh
 # FG-1 compute proof:
 #   APP=nvk_compute TITLE="NVK Compute" VERSION="0.60.0-compute1" bash winsys/build-nro.sh
+# FG-2 render -> sampled image -> compute -> storage image proof:
+#   APP=nvk_render_compute TITLE="NVK Render Compute" VERSION="0.61.0-chain1" bash winsys/build-nro.sh
 APP="${APP:-nvk_smoke}"
 TITLE="${TITLE:-NVK Smoke}"
 VERSION="${VERSION:-0.32.0-fencecmdlist}"
