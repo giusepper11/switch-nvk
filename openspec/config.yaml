@@ -1,0 +1,6 @@
+schema: spec-driven
+
+context: |
+  switch-nvk is a research-grade Vulkan/NVK frame-generation runtime and test harness for Nintendo Switch/Tegra X1.
+  Follow PROJECT.md, MILESTONES.md, AGENTS.md, docs/status/CAPABILITY_MATRIX.md, and docs/testing/HARDWARE_EVIDENCE.md.
+  Prove each technical layer independently; do not treat host, emulator, or adjacent-layer results as hardware proof.
