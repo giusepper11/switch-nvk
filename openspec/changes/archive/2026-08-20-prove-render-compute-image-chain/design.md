@@ -1,8 +1,10 @@
 ## Context
 
-See `proposal.md` for motivation. FG-1 establishes the compute-side primitives on real Tegra, while the inherited graphics tests establish graphics rendering in adjacent paths. No current acceptance artifact proves that color-attachment writes in an offscreen optimal-tiled image become sampled-image reads in compute and then storage-image writes in a second image.
+See `proposal.md` for motivation. FG-1 establishes the compute-side primitives on real Tegra, while the inherited graphics tests establish graphics rendering in adjacent paths. No accepted artifact proves that color-attachment writes in an offscreen optimal-tiled image become sampled-image reads in compute and then storage-image writes in a second image.
 
 The repository already has the two useful halves: `winsys/smoke/nvk_tri.c` creates an RGBA8 offscreen render target, graphics pipeline, render pass, and image-to-buffer readback; `winsys/smoke/nvk_compute.c` creates sampled/storage images, descriptors, a NAK compute pipeline, explicit barriers, repeated exact validation, and intended-path logging. The implementation should reuse their direct Vulkan/libnx patterns without extracting a framework.
+
+The first immutable combined artifact (`4b1ba31`) ran all 64 iterations twice on real hardware without a reported GPU fault. Iteration 1 matched exactly, while iterations 2-64 showed that graphics consumed each changing seed and compute continued to consume seed 5. The exact pixel algebra makes a fragment/compute push-constant stage-state interaction the leading `HYPOTHESIS`, not a proven driver root cause. That artifact used separate graphics and compute pipeline layouts and issued equal-valued pushes for the two stages in sequence.
 
 ## Goals / Non-Goals
 
@@ -46,6 +48,16 @@ The transformation must depend on every sampled input channel and the run seed s
 
 Alternative: direct image copy A to B. Rejected because it does not prove compute sampling or storage-image writes. Alternative: sample with linear filtering. Rejected because floating interpolation and rounding complicate exact byte validation without adding value to FG-2.
 
+### Use one shared pipeline layout and one multi-stage seed push
+
+Create the sampled/storage descriptor-set layout once and include it in one pipeline layout used to create both the graphics and compute pipelines. The graphics shaders do not consume the descriptor set, while the compute pipeline binds it normally. Define one four-byte push-constant range at offset zero whose stage flags cover both fragment and compute.
+
+For each iteration, push the current seed once through the shared layout with both fragment and compute stage flags before the draw. Preserve that compatible state through the later compute bind and dispatch; do not issue the second compute-only push used by the failed artifact. Keep the shaders, image contents, barriers, dispatch, CPU oracle, and validation unchanged so the experiment changes only the stage/layout state contract.
+
+Alternative: retain separate pipeline layouts and separate equal-valued fragment/compute pushes. Rejected for the next controlled experiment because the immutable hardware result reproduced stale compute-stage seed state under exactly that arrangement. This does not establish that separate layouts are generally invalid.
+
+If the shared-layout variant passes all acceptance criteria, it supports the cache-interaction hypothesis and proves the tested FG-2 behavior, but it does not by itself prove a general NVK root cause. If stale compute state persists, reject this hypothesis, retain `BLOCKED`, and stop before broad changes until lower-level push-constant state instrumentation defines the next falsifiable experiment.
+
 ### Make every layout and dependency explicit
 
 Use barriers or equivalent render-pass dependencies for these states:
@@ -82,11 +94,14 @@ After a timeout or fault, retain the complete application and Mesa/driver stream
 - [A combined artifact obscures which stage failed] → Log creation, transition, draw, dispatch, transfer, and validation phases separately and fail at the first Vulkan or data error.
 - [Driver logs are not written to the configured SD file] → Retain combined nxlink stdout/stderr as the driver stream and explicitly record any missing configured file, following the FG-1 provenance precedent.
 - [Premature helper extraction widens scope] → Duplicate or locally adapt the small proven patterns first; refactor only when a later concrete consumer requires it.
+- [The shared-layout variant passes but the inferred driver mechanism is wrong] → Promote only the behavior exercised by the deterministic chain; keep the driver-root-cause statement at `HYPOTHESIS` unless separate instrumentation proves it.
+- [The shared-layout variant still exposes stale compute state] → Retain the full failed run, reject the hypothesis, keep FG-2 `BLOCKED`, and require lower-level state instrumentation before another implementation change.
 
 ## Migration Plan
 
-1. Add the standalone artifact and embedded shaders without modifying runtime semantics.
-2. Build/package it from the authoritative source and run host/static checks; record only host evidence.
-3. Execute the 64-iteration acceptance run on real Tegra, inspect complete logs and fault state, and retain immutable provenance.
-4. Promote the FG-2 milestone and capability rows only after the hardware record satisfies the spec; otherwise retain `IMPLEMENTED_UNPROVEN`, `BLOCKED`, or `REJECTED` evidence.
-5. Roll back by removing the standalone artifact/build selection and leaving runtime behavior unchanged; negative results remain retained research evidence.
+1. Retain the `4b1ba31` failure artifact, complete logs, and exact-output analysis as the immutable baseline; keep FG-2 `BLOCKED`.
+2. Change only the pipeline-layout and push-constant state contract to the shared-layout variant; preserve the shaders, image chain, barriers, oracle, and runtime semantics.
+3. Build/package from the authoritative source, review the shared layout and descriptor compatibility, and record host evidence without promoting the capability.
+4. From a new immutable commit, hash the artifact and repeat the complete 64-iteration real-Tegra acceptance run with full-log and fault-state inspection.
+5. If every criterion passes, record that the result supports the hypothesis and promote only the tested FG-2 behavior. If it fails, reject the hypothesis, retain `BLOCKED`, and define lower-level instrumentation before another code change.
+6. Roll back by removing the standalone artifact/build selection and leaving runtime behavior unchanged; both negative and positive experiment records remain retained evidence.

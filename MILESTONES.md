@@ -6,7 +6,7 @@ Status values: `NOT_STARTED`, `IN_PROGRESS`, `BLOCKED`, `PROVEN_HOST`, `PROVEN_H
 
 ## M0 — Project foundation
 
-**Status:** IN_PROGRESS
+**Status:** PROVEN_HOST
 
 Goal: make the fork safe for repeatable agent-driven research.
 
@@ -23,6 +23,11 @@ Acceptance:
 
 - a new contributor/agent can identify the current goal, next milestone, evidence standard, and source-of-truth documents without reading the entire historical notebook;
 - historical upstream documents remain intact.
+
+Current status: the foundation documents, source-of-truth map, OpenSpec workflow, evidence
+standard, and contributor guidance are present and were reviewed from a clean checkout. This is a
+process/documentation milestone, so `PROVEN_HOST` records completion without implying a hardware
+capability claim.
 
 ---
 
@@ -60,7 +65,7 @@ Do not call compute "supported for framegen" until this passes.
 
 ## FG-2 — Render-to-texture and compute/image chaining
 
-**Status:** NOT_STARTED
+**Status:** BLOCKED
 
 Goal: validate the image transitions used by temporal pipelines.
 
@@ -77,6 +82,12 @@ Acceptance:
 - hardware-proven deterministic result;
 - barriers/layout transitions are explicit and validation logic is documented;
 - no hidden CPU copy is required for the processing chain.
+
+Current result: immutable artifacts `4b1ba31` and shared-layout controlled variant `d9dfc65` each
+executed all 64 iterations on real hardware, but only the first iteration matched. Both produced the
+same exact stale compute-seed signature. The shared-layout/cache-interaction hypothesis is
+`REJECTED`; lower-level descriptor-root, QMD upload/address, and GPU-visible constant-buffer
+instrumentation is required before another semantic change.
 
 ---
 

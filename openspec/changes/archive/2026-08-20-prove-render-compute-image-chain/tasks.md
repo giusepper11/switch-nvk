@@ -30,11 +30,22 @@
 
 ## 6. Run real-hardware acceptance
 
-- [ ] 6.1 From an exact committed source revision, rebuild and hash the artifact, then run all 64 iterations on real Switch/Tegra hardware; do not substitute an emulator.
-- [ ] 6.2 Retain and inspect the complete application and Mesa/driver streams before filtered excerpts, record all warnings, and collect supported `ERRNOTIF`/`ERRINFO` data after any timeout or GPU fault.
-- [ ] 6.3 Record hardware/model, firmware/toolchain context, format and extent, commit, artifact hash/version, iteration count, exact expected/observed pixels and checksums, intended-path/fallback state, GPU error state, and raw evidence references according to `docs/testing/HARDWARE_EVIDENCE.md`.
+- [x] 6.1 From an exact committed source revision, rebuild and hash the artifact, then run all 64 iterations on real Switch/Tegra hardware; do not substitute an emulator.
+- [x] 6.2 Retain and inspect the complete application and Mesa/driver streams before filtered excerpts, record all warnings, and collect supported `ERRNOTIF`/`ERRINFO` data after any timeout or GPU fault.
+- [x] 6.3 Record hardware/model, firmware/toolchain context, format and extent, commit, artifact hash/version, iteration count, exact expected/observed pixels and checksums, intended-path/fallback state, GPU error state, and raw evidence references according to `docs/testing/HARDWARE_EVIDENCE.md`.
 
 ## 7. Update project state only after evidence review
 
-- [ ] 7.1 If and only if all hardware acceptance criteria pass, promote FG-2 and the render-to-texture/image-chain capability rows to `PROVEN_HW`; otherwise retain the evidence and use `IMPLEMENTED_UNPROVEN`, `BLOCKED`, or `REJECTED` as warranted.
-- [ ] 7.2 Review the complete result for surprising behavior that requires a research note or durable architecture decision, sync the accepted delta spec, and archive the change only after implementation and evidence are complete.
+- [x] 7.1 If and only if all hardware acceptance criteria pass, promote FG-2 and the render-to-texture/image-chain capability rows to `PROVEN_HW`; otherwise retain the evidence and use `IMPLEMENTED_UNPROVEN`, `BLOCKED`, or `REJECTED` as warranted.
+
+## 8. Test the shared-layout hypothesis
+
+- [x] 8.1 Revise the artifact to create one compatible pipeline layout used by both graphics and compute, with the sampled/storage descriptor-set layout and one four-byte push-constant range covering fragment and compute stages.
+- [x] 8.2 Push the current iteration seed once for both stages before the draw, remove the second compute-only push, and verify that shaders, image contents, barriers, dispatch, CPU oracle, and stale-seed detection remain unchanged.
+- [x] 8.3 Build and package the controlled variant from the authoritative source, review layout/descriptor compatibility, and record a new immutable commit, artifact version, and SHA256 without promoting beyond host evidence.
+- [x] 8.4 Repeat the complete 64-iteration real-Tegra acceptance run, retain and inspect the full application and driver streams, record supported GPU fault state, and compare the exact output with the failed `4b1ba31` baseline.
+- [x] 8.5 If the run passes, record that it supports rather than proves the cache-interaction hypothesis and promote only the tested FG-2 behavior; if it fails, reject the hypothesis, retain `BLOCKED`, and define lower-level instrumentation before another implementation change.
+
+## 9. Finalize the change after the controlled result
+
+- [x] 9.1 Review the complete controlled result for a research note or durable architecture decision, sync the accepted delta spec, and archive the change only after implementation and evidence are complete.
