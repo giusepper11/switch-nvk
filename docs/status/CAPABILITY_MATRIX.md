@@ -15,9 +15,9 @@ Status vocabulary is defined in `PROJECT.md` / `AGENTS.md`.
 | GPFIFO submit / GPU execution | PROVEN_HW | `winsys/smoke/nvk_smoke.c` + hardware history | async semantics in FG-3 |
 | CPU/GPU coherency for validated path | PROVEN_HW | CAFEBABE M2 smoke | revalidate for new external-memory paths |
 | NAK vertex/fragment shaders | PROVEN_HW | triangle/scene tests | retain regression |
-| Compute shader dispatch on this Horizon winsys | IMPLEMENTED_UNPROVEN | upstream NVK capability is not equivalent to dedicated Switch hardware proof | FG-1 |
-| Storage-buffer compute | IMPLEMENTED_UNPROVEN | no dedicated retained fork baseline proof | FG-1 |
-| Storage-image compute | IMPLEMENTED_UNPROVEN | no dedicated retained fork baseline proof | FG-1 |
+| Compute shader dispatch on this Horizon winsys | PROVEN_HW | `winsys/smoke/nvk_compute.c`, FG-1 hardware evidence | retain 64-iteration regression |
+| Storage-buffer compute | PROVEN_HW | `winsys/smoke/nvk_compute.c`, FG-1 hardware evidence | retain 64-iteration regression |
+| Storage-image compute | PROVEN_HW | `winsys/smoke/nvk_compute.c`, FG-1 hardware evidence | retain 64-iteration regression |
 | Render-to-texture pipeline | IMPLEMENTED_UNPROVEN | expected Vulkan/NVK behavior but no dedicated acceptance test in current baseline | FG-2 |
 
 ## Graphics feature baseline

@@ -8,12 +8,12 @@ This fork preserves the accumulated research behind getting **Mesa NVK (Vulkan) 
 2. **[`../MILESTONES.md`](../MILESTONES.md)** — ordered research/implementation gates.
 3. **[`status/CAPABILITY_MATRIX.md`](status/CAPABILITY_MATRIX.md)** — what is currently proven, unproven, blocked, or rejected.
 4. **[`../AGENTS.md`](../AGENTS.md)** — operating contract for coding/research agents.
-5. **[`DEVELOPMENT_WORKFLOW.md`](DEVELOPMENT_WORKFLOW.md)** — spec -> implementation -> hardware evidence -> next-gate workflow.
+5. **[`DEVELOPMENT_WORKFLOW.md`](DEVELOPMENT_WORKFLOW.md)** — OpenSpec proposal -> implementation -> hardware evidence -> next-gate workflow.
 6. **[`architecture/ARCHITECTURE.md`](architecture/ARCHITECTURE.md)** — subsystem boundaries and target data/synchronization flow.
 
 ## Working documentation
 
-- **[`specs/`](specs/README.md)** — implementation-facing specs; start from `specs/000-template.md`.
+- **[`../openspec/`](../openspec/)** — the single source for current behavioral specs and proposed implementation changes.
 - **[`research/`](research/README.md)** — experiment logs, negative results, measurements, and unresolved questions.
 - **[`testing/HARDWARE_EVIDENCE.md`](testing/HARDWARE_EVIDENCE.md)** — minimum evidence required for `PROVEN_HW`.
 - **[`decisions/`](decisions/README.md)** — architecture decision records for durable choices.
@@ -31,7 +31,7 @@ The files below remain important evidence and debugging knowledge from the origi
 - **[`../PLAN_DAWN_VULKAN.md`](../PLAN_DAWN_VULKAN.md)** — Dawn-over-Vulkan bridge work.
 - **[`../ROADMAP.md`](../ROADMAP.md)** — original ports-readiness roadmap.
 
-For the **new frame-generation effort**, `PROJECT.md`, `MILESTONES.md`, the capability matrix, and active specs take precedence when an older status document is stale.
+For the **new frame-generation effort**, `PROJECT.md`, `MILESTONES.md`, the capability matrix, and active OpenSpec specs take precedence when an older status document is stale.
 
 ## knowledge/ — accumulated research & debugging trail
 

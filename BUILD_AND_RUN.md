@@ -118,6 +118,7 @@ This recompiles the winsys shim + the smoke app fresh and links them with the wh
   fence). **This is the heart of the port.**
 - `winsys/switch_libc_shim.c` — the `open`/`mmap` wrap + libc/std gaps.
 - `winsys/smoke/nvk_smoke.c` — the headless smoke test (instance→device→fill→submit→readback).
+- `winsys/smoke/nvk_compute.c` — the FG-1 compute/storage-image proof (select with `APP=nvk_compute`).
 
 **Verify which binary you built** (the build can silently omit `DRM_SHIM_DEBUG`): the `.nro` should
 contain the strings `EXEC drain` / the BUILD tag. The smoke logs a `[BUILD vNN ...]` header line and the
@@ -140,6 +141,10 @@ curl.exe "ftp://<SWITCH-IP>:5000/sdmc:/nvk_smoke.log" -o nvk_smoke.log
 I VERIFY OK: all 1024 words == 0xcafebabe
 === SMOKE TEST PASSED — NVK rendered to memory on Tegra ===
 ```
+
+For the FG-1 artifact, build with `APP=nvk_compute TITLE="NVK Compute" VERSION="0.60.0-compute1"` and fetch
+`sdmc:/nvk_compute.log` plus `sdmc:/nvk_compute_mesa.log`. The complete device log must be inspected before
+using filtered excerpts as evidence.
 
 **Workflow notes:**
 - `nxlink -s` netloader is **flaky** (killing it wedges the Switch netloader) — use the FTP path above.

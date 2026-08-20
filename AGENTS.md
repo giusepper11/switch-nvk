@@ -9,7 +9,7 @@ Before changing code, read only what is needed, in this order:
 1. `PROJECT.md`
 2. `MILESTONES.md`
 3. `docs/status/CAPABILITY_MATRIX.md`
-4. the active spec in `docs/specs/`
+4. the active OpenSpec change under `openspec/changes/` (and relevant current capability specs under `openspec/specs/`)
 5. `docs/architecture/ARCHITECTURE.md` if the task crosses subsystem boundaries
 6. `docs/testing/HARDWARE_EVIDENCE.md` for any hardware-gated change
 7. relevant historical upstream docs only when needed:
@@ -50,40 +50,33 @@ A code review, build, emulator run, static analysis, or plausible upstream capab
 
 ## Change workflow
 
-For non-trivial work:
+OpenSpec is the only implementation-planning workflow for this repository. For non-trivial work:
 
-1. identify the milestone;
-2. read or create the active spec;
-3. state the hypothesis and acceptance test;
-4. implement the smallest vertical slice;
-5. run host/build checks;
-6. when hardware matters, produce a hardware artifact/test and stop at `IMPLEMENTED_UNPROVEN` until a hardware result exists;
-7. analyze the full hardware log, not only matching lines;
-8. update capability status and research findings;
-9. add an ADR only for decisions that are intended to persist across milestones.
+1. identify the milestone and the specific unknown or capability claim;
+2. use OpenSpec explore when research is needed to clarify the problem;
+3. use OpenSpec propose to create a change with `proposal.md`, delta specs under `specs/`, `design.md`, and `tasks.md`;
+4. review the proposal, capability delta, design, and tasks before implementation;
+5. use OpenSpec apply to implement the smallest vertical slice;
+6. run host/build checks;
+7. when hardware matters, produce a hardware artifact/test and stop at `IMPLEMENTED_UNPROVEN` until a hardware result exists;
+8. analyze the full hardware log, not only matching lines;
+9. update the capability matrix, research findings, and ADRs when appropriate;
+10. use OpenSpec archive after implementation and sync the accepted delta specs to `openspec/specs/`.
 
 Do not create broad abstractions before the first concrete consumer requires them.
 
-## Specs
+## OpenSpec artifacts
 
-Substantial implementation must be driven by a file under `docs/specs/`.
+Substantial implementation must be driven by an active change under `openspec/changes/`. The change's proposal, delta specs, design, and tasks must make the following explicit where relevant:
 
-A spec must define:
+- context, current evidence, and a falsifiable hypothesis;
+- scope, non-goals, and the smallest implementation slice;
+- interfaces, ownership, lifetime, and synchronization rules;
+- host/build validation and real-hardware acceptance criteria;
+- observability, logging, and false-positive detection;
+- risks, failure modes, rollback/fallback, and unresolved questions.
 
-- context/problem;
-- current evidence;
-- hypothesis;
-- scope and non-goals;
-- interfaces/data ownership if relevant;
-- implementation slice;
-- validation plan;
-- real-hardware acceptance criteria;
-- observability/logging requirements;
-- risks/failure modes;
-- rollback/fallback;
-- unresolved questions.
-
-Use `docs/specs/000-template.md`.
+Accepted behavioral truth belongs in `openspec/specs/`. Experiment logs belong in `docs/research/`, validation policy in `docs/testing/`, and durable architecture decisions in `docs/decisions/`. Do not create numbered implementation specs under `docs/specs/`.
 
 Tiny documentation fixes, typo fixes, mechanical refactors, and obvious test maintenance do not require a new spec.
 

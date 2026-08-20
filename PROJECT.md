@@ -108,7 +108,8 @@ For the new fork:
 - current capability status: `docs/status/CAPABILITY_MATRIX.md`
 - architecture: `docs/architecture/ARCHITECTURE.md`
 - agent workflow: `AGENTS.md`
-- feature/change specifications: `docs/specs/`
+- current behavioral capability specs: `openspec/specs/`
+- proposed changes and implementation plans: `openspec/changes/`
 - hardware proof requirements: `docs/testing/HARDWARE_EVIDENCE.md`
 - experiments and unknowns: `docs/research/`
 - architectural decisions: `docs/decisions/`

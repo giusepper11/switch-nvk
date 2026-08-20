@@ -1,6 +1,6 @@
 # Development Workflow
 
-This fork uses milestone-driven, spec-driven vertical slices.
+This fork uses milestone-driven OpenSpec changes and small, evidence-backed vertical slices.
 
 ## 1. Pick the next gate, not the most interesting feature
 
@@ -17,11 +17,11 @@ if external image import and native fence bridging are still unproven.
 
 A later-layer research probe is acceptable only when it is explicitly required to resolve an earlier design unknown.
 
-## 2. Open or create a spec
+## 2. Explore and propose an OpenSpec change
 
-For non-trivial changes, create a spec from `docs/specs/000-template.md`.
+For non-trivial changes, use OpenSpec as the single implementation-planning workflow. Start with `openspec explore` when the unknown or experiment needs investigation, then use the OpenSpec propose workflow to create a change under `openspec/changes/<change>/`.
 
-Keep the spec narrow. A useful spec should normally be finishable as one vertical slice or a small sequence of PRs with the same acceptance test.
+The generated change contains a proposal, delta specs, design, and tasks. Keep it narrow: a useful change should normally be finishable as one vertical slice or a small sequence of PRs with the same acceptance test.
 
 Bad scope:
 
@@ -30,6 +30,8 @@ Bad scope:
 Good scope:
 
 > Import one controlled external NvMap allocation as a borrowed GPU buffer and validate deterministic GPU read/write without changing image handling.
+
+The design and tasks should preserve falsifiable hypotheses, explicit ownership/synchronization, hardware acceptance, observability, false-positive analysis, failure handling, and rollback/fallback decisions. Current behavioral truth is maintained in `openspec/specs/`; `docs/specs/` is deprecated and must not receive new implementation specs.
 
 ## 3. Establish the baseline
 
@@ -42,7 +44,9 @@ Before modifying low-level code:
 
 For Mesa changes, explicitly determine whether the durable patch, tracked source mirror, or extracted tree drives the reproducible build.
 
-## 4. Implement one new primitive
+## 4. Apply one new primitive
+
+After reviewing the proposal, capability delta, design, and tasks, use the OpenSpec apply workflow. Do not implement a change before its planning artifacts are reviewable.
 
 Prefer:
 
@@ -117,14 +121,14 @@ Examples:
 
 A PR may include supporting refactors, but its acceptance criteria should still center on one capability.
 
-## 9. After a task is delivered
+## 9. Archive and update project state
 
-Do not regenerate the whole project plan.
+After implementation and evidence review, use OpenSpec archive and sync accepted delta specs into `openspec/specs/`. Then update the capability matrix, milestone status, research notes, and ADRs as justified. Do not regenerate the whole project plan.
 
 The loop is:
 
 ```text
-spec -> implement -> validate -> update evidence/status -> select next milestone -> next spec
+milestone/unknown -> explore -> propose -> review -> apply -> validate -> hardware evidence -> update state -> archive/sync
 ```
 
 `PROJECT.md` should change rarely. `MILESTONES.md` changes when sequencing or gates genuinely change. The capability matrix changes frequently as evidence accumulates.

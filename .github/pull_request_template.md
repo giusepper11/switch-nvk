@@ -1,7 +1,8 @@
-## Milestone / spec
+## Milestone / OpenSpec change
 
 - Milestone:
-- Spec:
+- OpenSpec change:
+- Capability:
 
 ## Claim advanced by this PR
 
@@ -12,6 +13,9 @@ State the single main capability this PR adds, proves, or de-risks.
 - 
 
 ## Evidence status
+
+- Previous evidence state:
+- New evidence state:
 
 Select the strongest status justified by this PR:
 
@@ -55,7 +59,9 @@ raw evidence reference:
 
 ## Fast path / fallback
 
-If this change has a fallback, how did the test prove which path executed?
+- Fallback used:
+- Fallback explicitly excluded:
+- How did the test prove which path executed?
 
 ## What remains unproven
 
@@ -75,7 +81,7 @@ For GPU memory/sync changes, describe ownership/lifetime and dependency changes.
 
 - [ ] `docs/status/CAPABILITY_MATRIX.md` when capability status changed
 - [ ] `MILESTONES.md` when a gate changed
-- [ ] active spec result/status
+- [ ] active OpenSpec change result/status
 - [ ] research note for surprising/negative findings
 - [ ] ADR if a durable architecture decision was established
 - [ ] no project-state docs required

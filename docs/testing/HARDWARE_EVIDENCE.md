@@ -124,6 +124,33 @@ real/generated cadence
 
 Do not use FPS as the only metric for a latency/synchronization change.
 
+## FG-1 hardware artifact record — `nvk_compute`
+
+This record documents the first complete real-Tegra run of the deterministic compute/storage-image
+artifact.
+
+```text
+Date: 2026-08-20
+Repository commit: HEAD plus working-tree change `prove-compute-storage-images`
+Spec/milestone: openspec/changes/prove-compute-storage-images / FG-1
+Hardware/model: Nintendo Switch OLED, real Tegra target, netloaded at 192.168.15.13:28280
+Firmware/Atmosphere/libnx context when relevant: firmware/CFW version not captured; devkitA64/libnx 4.12.0 build environment
+Build type: intended devkitA64 full Application `.nro`
+Diagnostics enabled: complete nxlink stdout capture; MESA_LOG_FILE; application log; preceding DRM_SHIM_DEBUG diagnostic run
+Resolution/format: 8x8 RGBA8 source/destination storage images; 64 uint32 storage elements
+Swapchain/buffer count/present mode when relevant: N/A — headless artifact
+Clock/OC state when relevant: not changed/captured
+Test artifact/version: APP=nvk_compute, BUILD compute1, VERSION=0.60.0-compute1
+Run duration/iteration count: 64 complete submit/wait/readback iterations completed
+Expected result: buffer[i]=(0x10203040+i*0x01010101 XOR 0xa5a5a5a5)+i; image swaps source R/B
+Observed result: `RESULT PASS`; 64/64 iterations exact; `buffer[0]=0xb58595e5`; `image[0]=0xff070b03`
+Deterministic validation/checksum: exact element/pixel comparison; buffer `0x5d09a285`; image `0xa4a662a5`; expected checksums matched
+GPU error notifier/error info: no `ERRNOTIF`/`ERRINFO` was reported during the diagnostic run; no fallback or bypass occurred
+Relevant timing summary: N/A — correctness-only artifact
+Raw evidence location/reference: `docs/testing/FG1_NVK_COMPUTE_RUN_2026-08-20.md`; device logs `sdmc:/nvk_compute.log` and `sdmc:/nvk_compute_mesa.log`
+Conclusion/status: PROVEN_HW for the tested compute dispatch, storage-buffer, sampled-image-to-storage-image, synchronization, and readback path
+```
+
 ## 7. Fallback-path detection
 
 If an implementation has a correctness fallback, evidence must prove which path ran.

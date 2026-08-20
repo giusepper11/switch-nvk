@@ -16,7 +16,7 @@ Deliverables:
 - `MILESTONES.md`
 - `AGENTS.md`
 - architecture and capability matrix
-- spec, ADR, research, and hardware-evidence conventions
+- OpenSpec, ADR, research, and hardware-evidence conventions
 - PR template
 
 Acceptance:
@@ -28,7 +28,7 @@ Acceptance:
 
 ## FG-1 — Compute + storage-image hardware proof
 
-**Status:** NOT_STARTED
+**Status:** PROVEN_HW
 
 Goal: prove the exact GPU primitives required by a frame interpolation pipeline on this NVK/Horizon stack.
 
@@ -50,6 +50,9 @@ Acceptance:
 - known input produces deterministic expected output;
 - no GPU fault/error notifier;
 - evidence retained according to `docs/testing/HARDWARE_EVIDENCE.md`.
+
+Current implementation status: `nvk_compute` passed on a real Nintendo Switch OLED: 64/64 exact
+iterations, matching buffer/image checksums, complete device-log inspection, and no reported GPU fault.
 
 Do not call compute "supported for framegen" until this passes.
 
@@ -337,7 +340,7 @@ Goal: validate the architecture against a demanding native title only after the 
 
 A title such as *The Legend of Zelda: Tears of the Kingdom* may be used as a late-stage validation target, but the core runtime must not become title-specific.
 
-Acceptance criteria must be defined by a dedicated spec at that time and include:
+Acceptance criteria must be defined by a dedicated OpenSpec change at that time and include:
 
 - stability;
 - correct acquisition and ownership;
@@ -355,7 +358,7 @@ Acceptance criteria must be defined by a dedicated spec at that time and include
 
 Every milestone gets:
 
-1. one spec under `docs/specs/` before substantial implementation;
+1. one OpenSpec change under `openspec/changes/` before substantial implementation;
 2. the smallest practical automated/host validation;
 3. a real-hardware acceptance run where hardware behavior is material;
 4. a capability-matrix update;

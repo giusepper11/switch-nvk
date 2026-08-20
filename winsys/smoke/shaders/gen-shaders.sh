@@ -18,6 +18,7 @@ glslangValidator -V multi.vert    -o multi.vert.spv
 glslangValidator -V multi.frag    -o multi.frag.spv
 glslangValidator -V tex.vert      -o tex.vert.spv
 glslangValidator -V tex.frag      -o tex.frag.spv
+glslangValidator -V compute.comp  -o compute.comp.spv
 python3 - <<'PY'
 import struct
 def emit(name, path, out):
@@ -46,6 +47,7 @@ with open('tri_shaders.h','w') as o:
     emit('multi_frag_spv','multi.frag.spv',o)
     emit('tex_vert_spv','tex.vert.spv',o)
     emit('tex_frag_spv','tex.frag.spv',o)
+    emit('compute_spv','compute.comp.spv',o)
 print('wrote tri_shaders.h (triangle + quad + scene + sascha + skybox + multi + tex SPIR-V)')
 PY
 ls -la tri_shaders.h

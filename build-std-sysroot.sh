@@ -6,13 +6,14 @@ export RUST_TARGET_PATH=/work RUSTC_BOOTSTRAP=1
 export RUSTFLAGS='-Zunstable-options -L /opt/devkitpro/devkitA64/aarch64-none-elf/lib -L /opt/devkitpro/libnx/lib'
 TGT=aarch64-switch-horizon
 SYSROOT=/work/sysroot
-RUSTC_SYSROOT="$(rustc --print sysroot)"
+RUST_TOOLCHAIN="${RUST_TOOLCHAIN:-nightly}"
+RUSTC_SYSROOT="$(rustc +"$RUST_TOOLCHAIN" --print sysroot)"
 
 # 1. build-std (release) on a lib crate -> produces std + deps rlibs.
 rm -rf /tmp/stdsr && mkdir -p /tmp/stdsr/src && cd /tmp/stdsr
 printf '#![no_main]\n' > src/lib.rs
 printf '[package]\nname="stdsr"\nversion="0.0.0"\nedition="2021"\n[lib]\ncrate-type=["rlib"]\n[profile.release]\npanic="abort"\n' > Cargo.toml
-cargo +nightly build --release -Zbuild-std=core,alloc,std,panic_abort --target "$TGT"
+cargo +"$RUST_TOOLCHAIN" build --release -Zbuild-std=core,alloc,std,panic_abort --target "$TGT"
 
 # 2. Assemble a sysroot: copy host sysroot structure for the target, then overlay our built std rlibs.
 DEPS=/tmp/stdsr/target/$TGT/release/deps
@@ -32,8 +33,12 @@ echo "=== sysroot std rlibs ==="; ls "$SYSROOT/lib/rustlib/$TGT/lib/" | grep -E 
 # 3. Validate: plain rustc with --sysroot (NO build-std) compiles a std crate.
 cd /tmp && printf 'fn main(){let v=vec![1,2,3];println!("{}",v.len());}\n' > t.rs
 echo "=== plain rustc --sysroot test (no build-std) ==="
-if rustc --target "$TGT" --sysroot "$SYSROOT" -C panic=abort t.rs -o /tmp/t 2>&1 | grep -q error; then
-  rustc --target "$TGT" --sysroot "$SYSROOT" -C panic=abort t.rs -o /tmp/t 2>&1 | tail -15
+if rustc +"$RUST_TOOLCHAIN" -Zunstable-options --target "$TGT" --sysroot "$SYSROOT" \
+  -L /opt/devkitpro/devkitA64/aarch64-none-elf/lib -L /opt/devkitpro/libnx/lib \
+  -C panic=abort t.rs -o /tmp/t 2>&1 | grep -q error; then
+  rustc +"$RUST_TOOLCHAIN" -Zunstable-options --target "$TGT" --sysroot "$SYSROOT" \
+    -L /opt/devkitpro/devkitA64/aarch64-none-elf/lib -L /opt/devkitpro/libnx/lib \
+    -C panic=abort t.rs -o /tmp/t 2>&1 | tail -15
   echo "SYSROOT TEST: FAIL"
 else
   echo "SYSROOT TEST: OK (rustc finds std via prebuilt sysroot)"

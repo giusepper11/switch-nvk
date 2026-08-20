@@ -14,6 +14,8 @@ mkdir -p "$OBJ"
 
 # Which app to build (default = the passing M2 smoke). Override e.g.:
 #   APP=nvk_tri TITLE="NVK Tri" VERSION="0.33.0-tri1a" bash winsys/build-nro.sh
+# FG-1 compute proof:
+#   APP=nvk_compute TITLE="NVK Compute" VERSION="0.60.0-compute1" bash winsys/build-nro.sh
 APP="${APP:-nvk_smoke}"
 TITLE="${TITLE:-NVK Smoke}"
 VERSION="${VERSION:-0.32.0-fencecmdlist}"
