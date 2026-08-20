@@ -15,10 +15,11 @@ Status vocabulary is defined in `PROJECT.md` / `AGENTS.md`.
 | GPFIFO submit / GPU execution | PROVEN_HW | `winsys/smoke/nvk_smoke.c` + hardware history | async semantics in FG-3 |
 | CPU/GPU coherency for validated path | PROVEN_HW | CAFEBABE M2 smoke | revalidate for new external-memory paths |
 | NAK vertex/fragment shaders | PROVEN_HW | triangle/scene tests | retain regression |
-| Compute shader dispatch on this Horizon winsys | PROVEN_HW | `winsys/smoke/nvk_compute.c`, FG-1 hardware evidence | retain 64-iteration regression |
-| Storage-buffer compute | PROVEN_HW | `winsys/smoke/nvk_compute.c`, FG-1 hardware evidence | retain 64-iteration regression |
-| Storage-image compute | PROVEN_HW | `winsys/smoke/nvk_compute.c`, FG-1 hardware evidence | retain 64-iteration regression |
+| Compute shader dispatch on this Horizon winsys | PROVEN_HW | `winsys/smoke/nvk_compute.c`, immutable-commit FG-1 hardware evidence | retain 64-iteration regression |
+| Storage-buffer compute | PROVEN_HW | `winsys/smoke/nvk_compute.c`, immutable-commit FG-1 hardware evidence | retain 64-iteration regression |
+| Storage-image compute | PROVEN_HW | `winsys/smoke/nvk_compute.c`, immutable-commit FG-1 hardware evidence | retain 64-iteration regression |
 | Render-to-texture pipeline | IMPLEMENTED_UNPROVEN | expected Vulkan/NVK behavior but no dedicated acceptance test in current baseline | FG-2 |
+| Render → sampled image → compute → storage image chain | BLOCKED | initial and shared-layout failures in `docs/testing/FG2_NVK_RENDER_COMPUTE_FAILURE_2026-08-20.md` and `docs/testing/FG2_NVK_RENDER_COMPUTE_SHARED_LAYOUT_FAILURE_2026-08-20.md`; identical stale compute-seed signature | instrument compute descriptor-root update, root upload/QMD address, and GPU-visible constant-buffer state |
 
 ## Graphics feature baseline
 
