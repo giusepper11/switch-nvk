@@ -130,7 +130,6 @@ int main(void)
    VkShaderModule shader = VK_NULL_HANDLE;
    VkRenderPass render_pass = VK_NULL_HANDLE;
    VkFramebuffer framebuffer = VK_NULL_HANDLE;
-   VkPipelineLayout graphics_layout = VK_NULL_HANDLE;
    VkPipeline graphics_pipeline = VK_NULL_HANDLE;
    VkDescriptorSetLayout descriptor_layout = VK_NULL_HANDLE;
    VkDescriptorPool descriptor_pool = VK_NULL_HANDLE;
@@ -161,7 +160,7 @@ int main(void)
    g_log = fopen("sdmc:/nvk_render_compute.log", "w");
    if (__nxlink_host.s_addr != 0 && R_SUCCEEDED(socketInitializeDefault()))
       nxlinkStdio();
-   LOG("=== NVK FG-2 render-compute image chain [BUILD chain1] ===");
+   LOG("=== NVK FG-2 render-compute image chain [BUILD chain2] ===");
    LOG("contract: graphics draw -> image A -> sampled compute -> image B -> readback; %ux%u RGBA8, %u iterations", 
        IMAGE_W, IMAGE_H, ITERATIONS);
    LOG("sentinels: image A=0x5a17c3e1 image B=0xa6d42b7f; seeds=(iteration*37+5)&255");
@@ -405,12 +404,16 @@ int main(void)
         .descriptorCount = 1, .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, .pImageInfo = &storage_di },
    };
    pUpdateDescriptorSets(dev, 2, writes, 0, NULL);
-   VkPushConstantRange compute_push = { VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(uint32_t) };
+   VkPushConstantRange shared_push = {
+      VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_COMPUTE_BIT,
+      0,
+      sizeof(uint32_t),
+   };
    VkPipelineLayoutCreateInfo plci = { .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
       .setLayoutCount = 1, .pSetLayouts = &descriptor_layout,
-      .pushConstantRangeCount = 1, .pPushConstantRanges = &compute_push };
+      .pushConstantRangeCount = 1, .pPushConstantRanges = &shared_push };
    r = pCreatePipelineLayout(dev, &plci, NULL, &pipeline_layout);
-   if (r != VK_SUCCESS) { LOG("FAIL pipeline: layout -> %d", r); goto done; }
+   if (r != VK_SUCCESS) { LOG("FAIL pipeline: shared layout -> %d", r); goto done; }
    VkPipelineShaderStageCreateInfo stage = { .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
       .stage = VK_SHADER_STAGE_COMPUTE_BIT, .module = shader, .pName = "main" };
    VkComputePipelineCreateInfo cpci = { .sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO,
@@ -448,11 +451,6 @@ int main(void)
    gfx_smci.pCode = render_compute_frag_spv;
    r = pCreateShaderModule(dev, &gfx_smci, NULL, &frag_shader);
    if (r != VK_SUCCESS) { LOG("FAIL graphics: fragment shader -> %d", r); goto done; }
-   VkPushConstantRange graphics_push = { VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(uint32_t) };
-   VkPipelineLayoutCreateInfo gfx_plci = { .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-      .pushConstantRangeCount = 1, .pPushConstantRanges = &graphics_push };
-   r = pCreatePipelineLayout(dev, &gfx_plci, NULL, &graphics_layout);
-   if (r != VK_SUCCESS) { LOG("FAIL graphics: pipeline layout -> %d", r); goto done; }
    VkPipelineShaderStageCreateInfo gfx_stages[2] = {
       { .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
         .stage = VK_SHADER_STAGE_VERTEX_BIT, .module = vert_shader, .pName = "main" },
@@ -478,10 +476,10 @@ int main(void)
       .stageCount = 2, .pStages = gfx_stages, .pVertexInputState = &vi,
       .pInputAssemblyState = &ia, .pViewportState = &vp, .pRasterizationState = &rs,
       .pMultisampleState = &ms, .pColorBlendState = &blend,
-      .layout = graphics_layout, .renderPass = render_pass };
+      .layout = pipeline_layout, .renderPass = render_pass };
    r = pCreateGraphicsPipelines(dev, VK_NULL_HANDLE, 1, &gpci, NULL, &graphics_pipeline);
    if (r != VK_SUCCESS) { LOG("FAIL graphics: pipeline -> %d", r); goto done; }
-   LOG("H graphics pipeline ready: oversized full-coverage triangle; fragment draw (not clear-only)");
+   LOG("H graphics pipeline ready: oversized full-coverage triangle; shared graphics+compute layout; fragment draw (not clear-only)");
 
    VkCommandPoolCreateInfo cpci_pool = { .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
       .flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT, .queueFamilyIndex = qfi };
@@ -530,7 +528,9 @@ int main(void)
          .renderArea = { { 0, 0 }, { IMAGE_W, IMAGE_H } } };
       pCmdBeginRenderPass(cmd, &rp_begin, VK_SUBPASS_CONTENTS_INLINE);
       pCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, graphics_pipeline);
-      pCmdPushConstants(cmd, graphics_layout, VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(seed), &seed);
+      pCmdPushConstants(cmd, pipeline_layout,
+                        VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_COMPUTE_BIT,
+                        0, sizeof(seed), &seed);
       pCmdDraw(cmd, 3, 1, 0, 0);
       pCmdEndRenderPass(cmd);
       VkImageMemoryBarrier source_to_sample = source_to_color;
@@ -559,7 +559,6 @@ int main(void)
       pCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline);
       pCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline_layout, 0, 1,
                              &descriptor_set, 0, NULL);
-      pCmdPushConstants(cmd, pipeline_layout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(seed), &seed);
       pCmdDispatch(cmd, IMAGE_W / 8u, IMAGE_H / 8u, 1);
       VkImageMemoryBarrier destination_to_copy = destination_to_compute;
       destination_to_copy.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
@@ -626,7 +625,6 @@ done:
    if (pDestroyCommandPool && pool) pDestroyCommandPool(dev, pool, NULL);
    if (pDestroyPipeline && graphics_pipeline) pDestroyPipeline(dev, graphics_pipeline, NULL);
    if (pDestroyPipeline && pipeline) pDestroyPipeline(dev, pipeline, NULL);
-   if (pDestroyPipelineLayout && graphics_layout) pDestroyPipelineLayout(dev, graphics_layout, NULL);
    if (pDestroyPipelineLayout && pipeline_layout) pDestroyPipelineLayout(dev, pipeline_layout, NULL);
    if (pDestroyFramebuffer && framebuffer) pDestroyFramebuffer(dev, framebuffer, NULL);
    if (pDestroyRenderPass && render_pass) pDestroyRenderPass(dev, render_pass, NULL);
