@@ -94,8 +94,11 @@ control retained the original stale signature, while the 63/63 fresh-root varian
 the completed QMD v0.6 `INVALIDATE_SHADER_CONSTANT_CACHE` bit-255 pair produced
 `specific_qmd_shader_constant_cache_invalidate_insufficient`: its valid control reproduced the
 seed-42-retention signature, and all 64 variant outputs remained identical while every causal check
-passed. Root reuse distance is the next separate discriminator; it is not combined here. FG-2
-remains `BLOCKED`.
+passed. The completed root-reuse-distance pair produced
+`specific_root_address_reuse_distance_change_insufficient`: increasing the root ring from A/B to
+A/B/C moved first root reuse from record 3 to 4, but both arms still retained seed-42 output from
+record 3 through 64 while all causal checks passed. This rejects only the tested distance increase;
+at most one later OpenSpec change may isolate compute-root backing identity. FG-2 remains `BLOCKED`.
 
 ---
 

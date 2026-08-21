@@ -121,6 +121,9 @@ both-new, malformed, and contradictory selector combination failed before device
 
 ## Final host/build validation
 
+- Immutable experiment-source revision: `a71baed9d432b3f168d26bf4a3edd4679b8461b7`. The archive and both
+  NROs were rebuilt after this commit, all recorded hashes reproduced, and the final source/artifact
+  semantic review passed before device contact.
 - Container: `switch-nvk-build`, image
   `sha256:4e516b1f35766dbb6c6061e606613ce5d19d8c393e03dee750675cbd80190832`.
 - Toolchain: Meson 1.12.0, Ninja 1.11.1, devkitA64 GCC 15.2.0, glslang 12.0.0.
