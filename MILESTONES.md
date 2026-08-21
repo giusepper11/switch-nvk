@@ -91,7 +91,11 @@ same exact stale compute-seed signature. The shared-layout/cache-interaction hyp
 exact stale signature. The immediate discriminating boundary is now whether changing only the
 compute-root GPU VA relative to the preceding dispatch changes GPU consumption while fresh-QMD
 behavior is held constant. FG-2 remains `BLOCKED` pending that separately controlled hardware
-experiment.
+experiment. The completed root-address pair produced `behavior_changed_unresolved`: the valid
+control retained the original stale signature, while the 63/63 fresh-root variant passed iterations
+1-2 and then retained iteration-2/seed-42 output through iteration 64. This is not a production fix;
+the next work must isolate why alternating roots advanced consumption once but not thereafter in a
+separate smaller change.
 
 ---
 

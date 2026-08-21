@@ -59,24 +59,24 @@
 
 - [x] 6.1 Commit the exact experiment source, verify the revision is immutable and contains no unrelated changes, rebuild both artifacts from it, and reproduce the recorded artifact, durable-patch, and shader hashes.
 - [x] 6.2 Perform a final source/artifact review confirming the exact causal difference: control selects the reused primary root, variant alternates root VAs, both alternate fresh QMD VAs, and all dependent QMD changes are confined to decoded root-address fields.
-- [ ] 6.3 Run only the control for all 64 iterations on the intended real Switch/Tegra configuration, retain the complete unfiltered combined stream, and inspect it before filtering for warnings, timeout, notifier/error-info data, or GPU faults.
-- [ ] 6.4 Require iteration 1 exact output, iterations 2-64 exact retained stale output, 0/63 selected-root transitions with ordinary root reuse, 63/63 QMD transitions, exact root/QMD copies, root-field attribution, 64/64 `PCAS` correlations, complete ordering, and no unexplained fault.
-- [ ] 6.5 If any control prerequisite fails, retain the evidence, classify the experiment `inconclusive`, do not run or interpret the variant, and stop without adding another intervention.
+- [x] 6.3 Run only the control for all 64 iterations on the intended real Switch/Tegra configuration, retain the complete unfiltered combined stream, and inspect it before filtering for warnings, timeout, notifier/error-info data, or GPU faults.
+- [x] 6.4 Require iteration 1 exact output, iterations 2-64 exact retained stale output, 0/63 selected-root transitions with ordinary root reuse, 63/63 QMD transitions, exact root/QMD copies, root-field attribution, 64/64 `PCAS` correlations, complete ordering, and no unexplained fault.
+- [x] 6.5 If any control prerequisite fails, retain the evidence, classify the experiment `inconclusive`, do not run or interpret the variant, and stop without adding another intervention.
 
 ## 7. Run and analyze the gated fresh-root variant
 
-- [ ] 7.1 Only after task 6.4 passes, run the variant for the unchanged 64 iterations on the same console/configuration and retain the complete unfiltered combined stream.
-- [ ] 7.2 Inspect the entire variant stream before filtering for unexpected warnings, timeout, notifier/error-info data, GPU faults, incomplete records, or observer effects.
-- [ ] 7.3 Prove 63/63 selected-root transitions, 63/63 QMD transitions, exact root source-to-both-mapping copies, exact selected QMD copies, decoded-root-to-selected-root matches, complete equality outside root-address fields, 64/64 selected-QMD-to-`PCAS` correlations, and complete ordering.
-- [ ] 7.4 Compare all 64 variant pixels/checksums and independent oracle decisions against expected values and the valid control, retaining any changed signature exactly without adding or combining a follow-up hypothesis.
-- [ ] 7.5 Produce the paired causal table covering source/artifact identities, selectors, iteration/seed, root contents and addresses, QMD contents/address-field attribution and addresses, direct dispatch, ordering, exact output/oracle, and GPU fault/error state.
+- [x] 7.1 Only after task 6.4 passes, run the variant for the unchanged 64 iterations on the same console/configuration and retain the complete unfiltered combined stream.
+- [x] 7.2 Inspect the entire variant stream before filtering for unexpected warnings, timeout, notifier/error-info data, GPU faults, incomplete records, or observer effects.
+- [x] 7.3 Prove 63/63 selected-root transitions, 63/63 QMD transitions, exact root source-to-both-mapping copies, exact selected QMD copies, decoded-root-to-selected-root matches, complete equality outside root-address fields, 64/64 selected-QMD-to-`PCAS` correlations, and complete ordering.
+- [x] 7.4 Compare all 64 variant pixels/checksums and independent oracle decisions against expected values and the valid control, retaining any changed signature exactly without adding or combining a follow-up hypothesis.
+- [x] 7.5 Produce the paired causal table covering source/artifact identities, selectors, iteration/seed, root contents and addresses, QMD contents/address-field attribution and addresses, direct dispatch, ordering, exact output/oracle, and GPU fault/error state.
 
 ## 8. Classify, retain, and prevent premature promotion
 
-- [ ] 8.1 Apply exactly one justified classification: `root_address_reuse_hypothesis_supported_experiment_only`, `specific_root_address_change_insufficient`, `behavior_changed_unresolved`, or `inconclusive`, using every prerequisite in the delta spec.
-- [ ] 8.2 Retain immutable complete raw logs under `docs/testing/raw/`, a full paired hardware record under `docs/testing/`, and a narrow causal finding under `docs/research/`, including exact hashes, output behavior, transition/correlation counts, and notifier/fault review.
-- [ ] 8.3 Update `docs/status/CAPABILITY_MATRIX.md` and `MILESTONES.md` only with the executed result and its exact limits; preserve all negative evidence and keep FG-2 `BLOCKED` regardless of outcome.
-- [ ] 8.4 If supported experimentally, record that it is not a production fix and require a separately reviewed ordinary-path remediation decision plus a new original unmodified image-chain 64/64 real-hardware acceptance run before FG-2 can advance.
-- [ ] 8.5 If insufficient, record only that this adjacent two-slot compute-root-address change was insufficient and identify only the next smallest unresolved boundary supported by the evidence; if behavior changed or evidence was inconclusive, retain the exact signature/prerequisite failure and propose only a smaller separate follow-up.
-- [ ] 8.6 Leave the experiment selectors disabled or remove the experiment-only allocation-selection hunk after evidence capture; do not promote it into ordinary execution, alter FG-3 submission/fence behavior, or perform the original-chain acceptance run in this change.
+- [x] 8.1 Apply exactly one justified classification: `root_address_reuse_hypothesis_supported_experiment_only`, `specific_root_address_change_insufficient`, `behavior_changed_unresolved`, or `inconclusive`, using every prerequisite in the delta spec.
+- [x] 8.2 Retain immutable complete raw logs under `docs/testing/raw/`, a full paired hardware record under `docs/testing/`, and a narrow causal finding under `docs/research/`, including exact hashes, output behavior, transition/correlation counts, and notifier/fault review.
+- [x] 8.3 Update `docs/status/CAPABILITY_MATRIX.md` and `MILESTONES.md` only with the executed result and its exact limits; preserve all negative evidence and keep FG-2 `BLOCKED` regardless of outcome.
+- [x] 8.4 If supported experimentally, record that it is not a production fix and require a separately reviewed ordinary-path remediation decision plus a new original unmodified image-chain 64/64 real-hardware acceptance run before FG-2 can advance.
+- [x] 8.5 If insufficient, record only that this adjacent two-slot compute-root-address change was insufficient and identify only the next smallest unresolved boundary supported by the evidence; if behavior changed or evidence was inconclusive, retain the exact signature/prerequisite failure and propose only a smaller separate follow-up.
+- [x] 8.6 Leave the experiment selectors disabled or remove the experiment-only allocation-selection hunk after evidence capture; do not promote it into ordinary execution, alter FG-3 submission/fence behavior, or perform the original-chain acceptance run in this change.
 - [ ] 8.7 Complete all repository/OpenSpec/policy/build-provenance checks, sync the accepted delta into canonical specs, archive only after implementation and evidence reconciliation are complete, run strict validation again, and leave the worktree clean.
