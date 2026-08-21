@@ -2,7 +2,7 @@
 
 Baseline for the frame-generation fork. This file is the concise current-state source of truth for capabilities relevant to the new project.
 
-Last reviewed: 2026-08-20
+Last reviewed: 2026-08-21
 
 Status vocabulary is defined in `PROJECT.md` / `AGENTS.md`.
 
@@ -19,8 +19,9 @@ Status vocabulary is defined in `PROJECT.md` / `AGENTS.md`.
 | Storage-buffer compute | PROVEN_HW | `winsys/smoke/nvk_compute.c`, immutable-commit FG-1 hardware evidence | retain 64-iteration regression |
 | Storage-image compute | PROVEN_HW | `winsys/smoke/nvk_compute.c`, immutable-commit FG-1 hardware evidence | retain 64-iteration regression |
 | Compute root upload/QMD diagnostics | PROVEN_HW | `docs/testing/FG2_ROOT_STATE_DIAGNOSTIC_RUN_2026-08-20.md`; current seed proven through CPU root/upload mapping and dispatched QMD encoding | retain observation-only diagnostic; do not infer GPU visibility |
+| Reused compute-root CPU cache-flush experiment | PROVEN_HW | `docs/testing/FG2_ROOT_UPLOAD_CACHE_FLUSH_RUN_2026-08-21.md`; valid paired control/variant produced `specific_flush_insufficient` | root-only CPU flush is not sufficient; keep experiment opt-in and test the next boundary separately |
 | Render-to-texture pipeline | IMPLEMENTED_UNPROVEN | expected Vulkan/NVK behavior but no dedicated acceptance test in current baseline | FG-2 |
-| Render → sampled image → compute → storage image chain | BLOCKED | initial/shared-layout failures plus `docs/testing/FG2_ROOT_STATE_DIAGNOSTIC_RUN_2026-08-20.md`; current seed reaches CPU upload mapping and dispatched QMD, but output retains the identical stale signature | controlled root-upload cache-visibility experiment; GPU consumption remains unresolved |
+| Render → sampled image → compute → storage image chain | BLOCKED | initial/shared-layout failures plus `docs/testing/FG2_ROOT_STATE_DIAGNOSTIC_RUN_2026-08-20.md` and `docs/testing/FG2_ROOT_UPLOAD_CACHE_FLUSH_RUN_2026-08-21.md`; the root-only CPU flush was invoked but retained the identical stale signature | next separately specified QMD-upload visibility experiment; GPU consumption remains unresolved |
 
 ## Graphics feature baseline
 

@@ -1,0 +1,105 @@
+Sending nvk_render_compute_rootflush_enabled.nro, 12683461 bytes
+2999978 sent (23.65%), 254 blocks
+starting server
+server active ...
+=== NVK FG-2 render-compute image chain [BUILD chain2-rootflush1] ===
+contract: graphics draw -> image A -> sampled compute -> image B -> readback; 16x16 RGBA8, 64 iterations
+sentinels: image A=0x5a17c3e1 image B=0xa6d42b7f; seeds=(iteration*37+5)&255
+FG2_ROOT_CACHE experiment=reused_compute_root_cpu_flush selector=1 path=eligible_reused_root_only
+A vkCreateInstance -> 0
+vk_instance: enumerate_cb NULL
+vk_instance: try_create_for_drm SET -> drm path
+vk_instance: &drmGetDevices2=0xc24d92450 ret=1
+WARNING: NVK is not a conformant Vulkan implementation, testing use only.
+B enumerate count -> 0 (1 device(s))
+C qfam[0]: flags=0xf count=1
+C selected graphics+compute queue family 0
+D vkCreateDevice -> 0
+E host-visible readback initialized; CPU image processing disabled
+F distinct test-owned image A=0x95d06a5c0 and image B=0x95d0e9060 allocated (RGBA8, 16x16)
+G NAK compute shader module (2016 bytes) -> 0
+G vkCreateComputePipelines -> 0
+G intended path: sampled image A binding 0 + storage image B binding 1; nearest/clamp sampler
+H graphics pipeline ready: oversized full-coverage triangle; shared graphics+compute layout; fragment draw (not clear-only)
+FG2_ROOT_DIAG phase=marker record=1 iteration=1 expected_seed=5 cmd=0x95d130040
+FG2_ROOT_DIAG phase=push record=1 cmd=0x95d130040 stages=0x30 root_push_offset=40 offset=0 size=4 input_seed=5 gfx_desc=0x95d1319d0 gfx_root=0x95d1319d0 gfx_seed=5 cs_desc=0x95d132b70 cs_root=0x95d132b70 cs_seed=5
+FG2_ROOT_DIAG phase=upload record=1 cmd=0x95d130040 cs_desc=0x95d132b70 root_src=0x95d132b70 source_seed=5 root_map=0x95d166000 mapped_seed=5 previous_root_gpu_va=0x0000000000000000 root_gpu_va=0x00000000c7f40000 size=2048 alignment=256 selector=1 reuse=no_prior cache_action=skipped_no_prior ordering=after_copy_before_qmd order_match=1 cpu_mapping_backing_gpu_va=1 cache_invocation_only=1 gpu_visible=UNPROVEN
+FG2_ROOT_DIAG phase=qmd record=1 cmd=0x95d130040 root_cbuf_index=0 lo_bits=928:960 lo_dw0=29:0xc7f40000 lo_dw1=29:0xc7f40000 hi_bits=960:968 hi_dw0=30:0x04000000 hi_dw1=30:0x04000000 decoded_root_va=0x00000000c7f40000 upload_root_va=0x00000000c7f40000 upload_size=2048 address_match=1 decode_ok=1
+FG2_ROOT_DIAG phase=qmd_upload record=1 cmd=0x95d130040 qmd_gpu_va=0x00000000c7f40800 root_gpu_va=0x00000000c7f40000
+FG2_ROOT_DIAG phase=dispatch record=1 cmd=0x95d130040 order_match=1 qmd_gpu_va=0x00000000c7f40800 pcas=0x00c7f408 root_gpu_va=0x00000000c7f40000
+FG2_ROOT_DIAG phase=result record=1 iteration=1 expected_seed=5 cmd=0x95d130040 observed_pixel0=0xfa47d33f expected_pixel0=0xfa47d33f observed_checksum=0xb7d223e5 expected_checksum=0xb7d223e5 observed_behavior_seed=5
+iteration 1/64 seed=5 EXACT OK: pixel[0]=0xfa47d33f checksum observed=0xb7d223e5 expected=0xb7d223e5
+FG2_ROOT_DIAG phase=marker record=2 iteration=2 expected_seed=42 cmd=0x95d130040
+FG2_ROOT_DIAG phase=push record=2 cmd=0x95d130040 stages=0x30 root_push_offset=40 offset=0 size=4 input_seed=42 gfx_desc=0x95d1319d0 gfx_root=0x95d1319d0 gfx_seed=42 cs_desc=0x95d132b70 cs_root=0x95d132b70 cs_seed=42
+FG2_ROOT_DIAG phase=upload record=2 cmd=0x95d130040 cs_desc=0x95d132b70 root_src=0x95d132b70 source_seed=42 root_map=0x95d166000 mapped_seed=42 previous_root_gpu_va=0x00000000c7f40000 root_gpu_va=0x00000000c7f40000 size=2048 alignment=256 selector=1 reuse=reused cache_action=invoked ordering=after_copy_before_qmd order_match=1 cpu_mapping_backing_gpu_va=1 cache_invocation_only=1 gpu_visible=UNPROVEN
+FG2_ROOT_DIAG phase=qmd record=2 cmd=0x95d130040 root_cbuf_index=0 lo_bits=928:960 lo_dw0=29:0xc7f40000 lo_dw1=29:0xc7f40000 hi_bits=960:968 hi_dw0=30:0x04000000 hi_dw1=30:0x04000000 decoded_root_va=0x00000000c7f40000 upload_root_va=0x00000000c7f40000 upload_size=2048 address_match=1 decode_ok=1
+FG2_ROOT_DIAG phase=qmd_upload record=2 cmd=0x95d130040 qmd_gpu_va=0x00000000c7f40800 root_gpu_va=0x00000000c7f40000
+FG2_ROOT_DIAG phase=dispatch record=2 cmd=0x95d130040 order_match=1 qmd_gpu_va=0x00000000c7f40800 pcas=0x00c7f408 root_gpu_va=0x00000000c7f40000
+FG2_ROOT_DIAG phase=result record=2 iteration=2 expected_seed=42 cmd=0x95d130040 observed_pixel0=0xfab61a38 expected_pixel0=0xf5031a17 observed_checksum=0xc17a35a5 expected_checksum=0x0daf4ac5 observed_behavior_seed=UNKNOWN
+FAIL iteration 1 seed=42: first mismatch (0,0) observed=0xfab61a38 expected=0xf5031a17; mismatches=256 observed_checksum=0xc17a35a5 expected_checksum=0x0daf4ac5
+FAIL iteration 2 seed=79: first mismatch (0,0) observed=0xfab61a38 expected=0xf0bf610f; mismatches=256 observed_checksum=0xc17a35a5 expected_checksum=0x1fcdf2e5
+FAIL iteration 3 seed=116: first mismatch (0,0) observed=0xfab61a38 expected=0xfb7ba837; mismatches=256 observed_checksum=0xc17a35a5 expected_checksum=0x76bdb5e5
+FAIL iteration 4 seed=153: first mismatch (0,0) observed=0xfab61a38 expected=0xf637efdf; mismatches=256 observed_checksum=0xc17a35a5 expected_checksum=0xd8abe8a5
+FAIL iteration 5 seed=190: first mismatch (0,0) observed=0xfab61a38 expected=0xf1f336f7; mismatches=256 observed_checksum=0xc17a35a5 expected_checksum=0x66b737a5
+FAIL iteration 6 seed=227: first mismatch (0,0) observed=0xfab61a38 expected=0xfcaf7daf; mismatches=256 observed_checksum=0xc17a35a5 expected_checksum=0x17d212e5
+FAIL iteration 7 seed=8: first mismatch (0,0) observed=0xfab61a38 expected=0xf76bc447; mismatches=256 observed_checksum=0xc17a35a5 expected_checksum=0xbeb3b105
+FAIL iteration 8 seed=45: first mismatch (0,0) observed=0xfab61a38 expected=0xf2270b7f; mismatches=256 observed_checksum=0xc17a35a5 expected_checksum=0xc0decf25
+FAIL iteration 9 seed=82: first mismatch (0,0) observed=0xfab61a38 expected=0xfde35207; mismatches=256 observed_checksum=0xc17a35a5 expected_checksum=0x4d248c85
+FAIL iteration 10 seed=119: first mismatch (0,0) observed=0xfab61a38 expected=0xf89f992f; mismatches=256 observed_checksum=0xc17a35a5 expected_checksum=0x7ab25fa5
+FAIL iteration 11 seed=156: first mismatch (0,0) observed=0xfab61a38 expected=0xf35be0c7; mismatches=256 observed_checksum=0xc17a35a5 expected_checksum=0x458a2b25
+FAIL iteration 12 seed=193: first mismatch (0,0) observed=0xfab61a38 expected=0xfe17279f; mismatches=256 observed_checksum=0xc17a35a5 expected_checksum=0x14faff65
+FAIL iteration 13 seed=230: first mismatch (0,0) observed=0xfab61a38 expected=0xf9d36e87; mismatches=256 observed_checksum=0xc17a35a5 expected_checksum=0x578fb7a5
+FAIL iteration 14 seed=11: first mismatch (0,0) observed=0xfab61a38 expected=0xf48fb56f; mismatches=256 observed_checksum=0xc17a35a5 expected_checksum=0x19620b25
+FAIL iteration 15 seed=48: first mismatch (0,0) observed=0xfab61a38 expected=0xff4bfc57; mismatches=256 observed_checksum=0xc17a35a5 expected_checksum=0xfc38ba85
+FAIL iteration 16 seed=85: first mismatch (0,0) observed=0xfab61a38 expected=0xfa07433f; mismatches=256 observed_checksum=0xc17a35a5 expected_checksum=0xe2b6a365
+FAIL iteration 17 seed=122: first mismatch (0,0) observed=0xfab61a38 expected=0xf5c38a17; mismatches=256 observed_checksum=0xc17a35a5 expected_checksum=0x3301db45
+FAIL iteration 18 seed=159: first mismatch (0,0) observed=0xfab61a38 expected=0xf07fd1ef; mismatches=256 observed_checksum=0xc17a35a5 expected_checksum=0x2c733865
+FAIL iteration 19 seed=196: first mismatch (0,0) observed=0xfab61a38 expected=0xfb3b18b7; mismatches=256 observed_checksum=0xc17a35a5 expected_checksum=0x144782a5
+FAIL iteration 20 seed=233: first mismatch (0,0) observed=0xfab61a38 expected=0xf6f75f9f; mismatches=256 observed_checksum=0xc17a35a5 expected_checksum=0x3dad6ae5
+FAIL iteration 21 seed=14: first mismatch (0,0) observed=0xfab61a38 expected=0xf1b3a677; mismatches=256 observed_checksum=0xc17a35a5 expected_checksum=0x60c3dd65
+FAIL iteration 22 seed=51: first mismatch (0,0) observed=0xfab61a38 expected=0xfc6fed4f; mismatches=256 observed_checksum=0xc17a35a5 expected_checksum=0xffb057a5
+FAIL iteration 23 seed=88: first mismatch (0,0) observed=0xfab61a38 expected=0xf72b3427; mismatches=256 observed_checksum=0xc17a35a5 expected_checksum=0x16cc6985
+FAIL iteration 24 seed=125: first mismatch (0,0) observed=0xfab61a38 expected=0xf2e77bff; mismatches=256 observed_checksum=0xc17a35a5 expected_checksum=0x4d6874a5
+FAIL iteration 25 seed=162: first mismatch (0,0) observed=0xfab61a38 expected=0xfda3c227; mismatches=256 observed_checksum=0xc17a35a5 expected_checksum=0x6fad7185
+FAIL iteration 26 seed=199: first mismatch (0,0) observed=0xfab61a38 expected=0xf85f094f; mismatches=256 observed_checksum=0xc17a35a5 expected_checksum=0xadb00b65
+FAIL iteration 27 seed=236: first mismatch (0,0) observed=0xfab61a38 expected=0xf31b5067; mismatches=256 observed_checksum=0xc17a35a5 expected_checksum=0x9c92f1e5
+FAIL iteration 28 seed=17: first mismatch (0,0) observed=0xfab61a38 expected=0xfed7979f; mismatches=256 observed_checksum=0xc17a35a5 expected_checksum=0xb5b68c25
+FAIL iteration 29 seed=54: first mismatch (0,0) observed=0xfab61a38 expected=0xf993dea7; mismatches=256 observed_checksum=0xc17a35a5 expected_checksum=0x269166a5
+FAIL iteration 30 seed=91: first mismatch (0,0) observed=0xfab61a38 expected=0xf44f25cf; mismatches=256 observed_checksum=0xc17a35a5 expected_checksum=0x95a82b65
+FAIL iteration 31 seed=128: first mismatch (0,0) observed=0xfab61a38 expected=0xff0b6c17; mismatches=256 observed_checksum=0xc17a35a5 expected_checksum=0x1f6b1a45
+FAIL iteration 32 seed=165: first mismatch (0,0) observed=0xfab61a38 expected=0xfac7b33f; mismatches=256 observed_checksum=0xc17a35a5 expected_checksum=0x7845fbe5
+FAIL iteration 33 seed=202: first mismatch (0,0) observed=0xfab61a38 expected=0xf583fa57; mismatches=256 observed_checksum=0xc17a35a5 expected_checksum=0x031312c5
+FAIL iteration 34 seed=239: first mismatch (0,0) observed=0xfab61a38 expected=0xf03f414f; mismatches=256 observed_checksum=0xc17a35a5 expected_checksum=0x7ee00565
+FAIL iteration 35 seed=20: first mismatch (0,0) observed=0xfab61a38 expected=0xfbfb88b7; mismatches=256 observed_checksum=0xc17a35a5 expected_checksum=0xc74f2a65
+FAIL iteration 36 seed=57: first mismatch (0,0) observed=0xfab61a38 expected=0xf6b7cf9f; mismatches=256 observed_checksum=0xc17a35a5 expected_checksum=0x4c9c0ba5
+FAIL iteration 37 seed=94: first mismatch (0,0) observed=0xfab61a38 expected=0xf17316f7; mismatches=256 observed_checksum=0xc17a35a5 expected_checksum=0xf01002a5
+FAIL iteration 38 seed=131: first mismatch (0,0) observed=0xfab61a38 expected=0xfc2f5d2f; mismatches=256 observed_checksum=0xc17a35a5 expected_checksum=0x22ab9fe5
+FAIL iteration 39 seed=168: first mismatch (0,0) observed=0xfab61a38 expected=0xf7eba407; mismatches=256 observed_checksum=0xc17a35a5 expected_checksum=0xd136bf05
+FAIL iteration 40 seed=205: first mismatch (0,0) observed=0xfab61a38 expected=0xf2a7eb7f; mismatches=256 observed_checksum=0xc17a35a5 expected_checksum=0x4b267725
+FAIL iteration 41 seed=242: first mismatch (0,0) observed=0xfab61a38 expected=0xfd633247; mismatches=256 observed_checksum=0xc17a35a5 expected_checksum=0x118abb05
+FAIL iteration 42 seed=23: first mismatch (0,0) observed=0xfab61a38 expected=0xf81f79af; mismatches=256 observed_checksum=0xc17a35a5 expected_checksum=0xbe1b29a5
+FAIL iteration 43 seed=60: first mismatch (0,0) observed=0xfab61a38 expected=0xf3dbc087; mismatches=256 observed_checksum=0xc17a35a5 expected_checksum=0x6f7551a5
+FAIL iteration 44 seed=97: first mismatch (0,0) observed=0xfab61a38 expected=0xfe9707df; mismatches=256 observed_checksum=0xc17a35a5 expected_checksum=0xdcd1cee5
+FAIL iteration 45 seed=134: first mismatch (0,0) observed=0xfab61a38 expected=0xf9534e47; mismatches=256 observed_checksum=0xc17a35a5 expected_checksum=0xe690aaa5
+FAIL iteration 46 seed=171: first mismatch (0,0) observed=0xfab61a38 expected=0xf40f956f; mismatches=256 observed_checksum=0xc17a35a5 expected_checksum=0xddd1aa25
+FAIL iteration 47 seed=208: first mismatch (0,0) observed=0xfab61a38 expected=0xffcbdc17; mismatches=256 observed_checksum=0xc17a35a5 expected_checksum=0xab747d05
+FAIL iteration 48 seed=245: first mismatch (0,0) observed=0xfab61a38 expected=0xfa87233f; mismatches=256 observed_checksum=0xc17a35a5 expected_checksum=0x7874fe65
+FAIL iteration 49 seed=26: first mismatch (0,0) observed=0xfab61a38 expected=0xf5436ad7; mismatches=256 observed_checksum=0xc17a35a5 expected_checksum=0xbbd3e5c5
+FAIL iteration 50 seed=63: first mismatch (0,0) observed=0xfab61a38 expected=0xf0ffb1ef; mismatches=256 observed_checksum=0xc17a35a5 expected_checksum=0xeff049e5
+FAIL iteration 51 seed=100: first mismatch (0,0) observed=0xfab61a38 expected=0xfbbbf8b7; mismatches=256 observed_checksum=0xc17a35a5 expected_checksum=0x51412225
+FAIL iteration 52 seed=137: first mismatch (0,0) observed=0xfab61a38 expected=0xf6773f5f; mismatches=256 observed_checksum=0xc17a35a5 expected_checksum=0x595342e5
+FAIL iteration 53 seed=174: first mismatch (0,0) observed=0xfab61a38 expected=0xf1338677; mismatches=256 observed_checksum=0xc17a35a5 expected_checksum=0x11b950e5
+FAIL iteration 54 seed=211: first mismatch (0,0) observed=0xfab61a38 expected=0xfcefcd0f; mismatches=256 observed_checksum=0xc17a35a5 expected_checksum=0xa59893a5
+FAIL iteration 55 seed=248: first mismatch (0,0) observed=0xfab61a38 expected=0xf7ab1427; mismatches=256 observed_checksum=0xc17a35a5 expected_checksum=0x1cbdd285
+FAIL iteration 56 seed=29: first mismatch (0,0) observed=0xfab61a38 expected=0xf2675bff; mismatches=256 observed_checksum=0xc17a35a5 expected_checksum=0xe8b6dfa5
+FAIL iteration 57 seed=66: first mismatch (0,0) observed=0xfab61a38 expected=0xfd23a2a7; mismatches=256 observed_checksum=0xc17a35a5 expected_checksum=0x4f1f5d85
+FAIL iteration 58 seed=103: first mismatch (0,0) observed=0xfab61a38 expected=0xf8dfe98f; mismatches=256 observed_checksum=0xc17a35a5 expected_checksum=0x0bc02e65
+FAIL iteration 59 seed=140: first mismatch (0,0) observed=0xfab61a38 expected=0xf39b3067; mismatches=256 observed_checksum=0xc17a35a5 expected_checksum=0x916d98e5
+FAIL iteration 60 seed=177: first mismatch (0,0) observed=0xfab61a38 expected=0xfe57775f; mismatches=256 observed_checksum=0xc17a35a5 expected_checksum=0xe993c925
+FAIL iteration 61 seed=214: first mismatch (0,0) observed=0xfab61a38 expected=0xf913be27; mismatches=256 observed_checksum=0xc17a35a5 expected_checksum=0x9b92f8a5
+FAIL iteration 62 seed=251: first mismatch (0,0) observed=0xfab61a38 expected=0xf4cf050f; mismatches=256 observed_checksum=0xc17a35a5 expected_checksum=0xc4d1a3e5
+FAIL iteration 63 seed=32: first mismatch (0,0) observed=0xfab61a38 expected=0xff8b4cd7; mismatches=256 observed_checksum=0xc17a35a5 expected_checksum=0x7aa666c5
+RESULT FAIL: 63/64 iterations mismatched; capability remains unproven
+cleanup: Vulkan device and instance destroyed
+=== done; log at sdmc:/nvk_render_compute.log ===
+exiting ... 
