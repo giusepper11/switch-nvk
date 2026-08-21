@@ -1,11 +1,12 @@
 # FG-2 QMD shader-constant-cache invalidation host record — 2026-08-21
 
-Status: `IN_PROGRESS`
+Status: `IMPLEMENTED_UNPROVEN` (host-gate record; subsequent hardware evidence is recorded separately)
 
 ## Baseline and authority
 
 - Branch: `master`
 - Starting HEAD and fetched `origin/master`: `c147c8adc58d19450803676c177641e1a20cf9e1`
+- Immutable experiment commit: `57d8075b386a1c1f24b6d38a7d5645d43403ffed`
 - Starting worktree: clean except for the active untracked OpenSpec change
 - Active change: `test-compute-qmd-shader-constant-cache-invalidate`
 - Archived predecessor: `openspec/changes/archive/2026-08-21-test-compute-root-address-reuse`
@@ -59,5 +60,7 @@ Selector tests returned exit 2 for non-binary values, both new selectors, and ne
 The native Mesa `nak` test target passed all five subtests, including the new 64-record generated-QMD test proving explicit false equals the retained default and control/variant XOR equals only bit 255 for both alternating root addresses. The complete-stream validator rejected 12 injected failures covering unexpected field layout/bits, wrong field decode, root decode, source/mapped copy, root/QMD transition, QMD-to-PCAS address, record order, incomplete aggregate, incomplete teardown, ambiguous fault state, and an explicit GPU-fault marker.
 
 The durable patch is now consolidated rather than sequential: one complete dry run and one apply against pristine Mesa 25.0.7 reconstructed all 31 authoritative files byte-for-byte. `bash -n`, patch reconstruction, the NAK/NVK archive builds, both NRO builds, strict OpenSpec validation, and `git diff --check` passed.
+
+Both artifacts were rebuilt after committing the exact experiment source at `57d8075b386a1c1f24b6d38a7d5645d43403ffed`; patch, harness, shader, control-NRO, and invalidate-NRO hashes reproduced exactly. Final source review confirmed identical A/B–X/Y allocation and selection, retained `INVALIDATE_SKED_CACHES`, direct `SEND_PCAS_A`, `SEND_SIGNALING_PCAS_B`, cache maintenance, submission, and waits; only the typed QMD bit-255 value plus arm-identifying metadata differ causally.
 
 Host/build evidence does not prove GPU visibility or consumption. Hardware status remains `IMPLEMENTED_UNPROVEN`; real Tegra was not contacted by this host record.

@@ -71,24 +71,24 @@
 
 ## 7. Freeze provenance and run the gated hardware control
 
-- [ ] 7.1 Commit the exact experiment source without unrelated changes, rebuild both artifacts from that immutable revision, and reproduce the recorded commit, patch, artifact, shader, and generated-header hashes.
-- [ ] 7.2 Perform the final source/artifact review proving both arms use identical A/B–X/Y allocation/selection and differ causally only in typed QMD v0.6 bit 255.
-- [ ] 7.3 Run only the control for all 64 iterations on the intended real Switch/Tegra configuration and retain the complete combined unfiltered stream under `docs/testing/raw/`.
-- [ ] 7.4 Read the entire control log before filtering and inspect startup, all records, teardown, warnings, timeout, notifier/error-info, and GPU fault state.
-- [ ] 7.5 Require seed 5 and seed 42 exact, iterations 3-64 at the retained seed-42 pixel/checksum, 63/63 root and QMD transitions, bit 255 zero, 64/64 copies/one-bit counterfactual checks/root decodes/`PCAS` links/oracle records, complete order, and no unexplained fault.
-- [ ] 7.6 If any control prerequisite fails, retain the exact deviation, classify `inconclusive`, forbid variant execution or interpretation, update only justified evidence/state wording, and stop without adding another intervention.
-- [ ] 7.7 If hardware is unavailable after host completion, record `IMPLEMENTED_UNPROVEN` and `hardware-ready`, report no device contact, leave hardware tasks open, and do not archive the change as complete.
+- [x] 7.1 Commit the exact experiment source without unrelated changes, rebuild both artifacts from that immutable revision, and reproduce the recorded commit, patch, artifact, shader, and generated-header hashes.
+- [x] 7.2 Perform the final source/artifact review proving both arms use identical A/B–X/Y allocation/selection and differ causally only in typed QMD v0.6 bit 255.
+- [x] 7.3 Run only the control for all 64 iterations on the intended real Switch/Tegra configuration and retain the complete combined unfiltered stream under `docs/testing/raw/`.
+- [x] 7.4 Read the entire control log before filtering and inspect startup, all records, teardown, warnings, timeout, notifier/error-info, and GPU fault state.
+- [x] 7.5 Require seed 5 and seed 42 exact, iterations 3-64 at the retained seed-42 pixel/checksum, 63/63 root and QMD transitions, bit 255 zero, 64/64 copies/one-bit counterfactual checks/root decodes/`PCAS` links/oracle records, complete order, and no unexplained fault.
+- [x] 7.6 If any control prerequisite fails, retain the exact deviation, classify `inconclusive`, forbid variant execution or interpretation, update only justified evidence/state wording, and stop without adding another intervention.
+- [x] 7.7 If hardware is unavailable after host completion, record `IMPLEMENTED_UNPROVEN` and `hardware-ready`, report no device contact, leave hardware tasks open, and do not archive the change as complete.
 
 ## 8. Run the authorized variant, classify, and retain evidence
 
-- [ ] 8.1 Only after task 7.5 passes, run the unchanged variant for all 64 iterations on the same intended console/configuration and retain the complete combined unfiltered stream.
-- [ ] 8.2 Read the entire variant log before filtering and inspect startup, all records, teardown, warnings, timeout, notifier/error-info, GPU faults, and observer effects.
-- [ ] 8.3 Prove bit 255 one on every selected variant QMD, exact selected/counterfactual one-bit differences, exact selected-to-mapped copies, identical corresponding root encodings/schedule, 63/63 root and QMD transitions, 64/64 `PCAS` correlations, ordering, and complete fault evidence.
-- [ ] 8.4 Compare all 64 pixels/checksums and independent oracle decisions with expected values and the valid control, retaining any changed signature exactly.
-- [ ] 8.5 Produce a paired causal table covering commits/artifacts/selectors, iteration/seed, root contents/addresses, QMD full-payload decisions and addresses, direct dispatch, ordering, output/oracle, teardown, and notifier/error state.
-- [ ] 8.6 Apply exactly one result: `qmd_shader_constant_cache_invalidate_supported_experiment_only`, `specific_qmd_shader_constant_cache_invalidate_insufficient`, `behavior_changed_unresolved`, or `inconclusive`; make no broader cache, backing, lifetime, or NVK claim.
-- [ ] 8.7 Retain complete raw logs, a full hardware record, and a narrow research finding; update `MILESTONES.md` and `docs/status/CAPABILITY_MATRIX.md` only with the exact result and limits while keeping FG-2 `BLOCKED` and FG-3/FG-4 unchanged.
-- [ ] 8.8 If exactly negative, name root reuse distance only as the next separate OpenSpec discriminator; if changed-but-failing, derive one smaller separate discriminator; do not implement either or combine another Gallium field here.
-- [ ] 8.9 If supported experimentally, record that a separate production-remediation decision and separate ordinary image-chain 64/64 real-hardware acceptance change are mandatory before any promotion.
-- [ ] 8.10 Leave the selector opt-in or roll back experiment-only call-site wiring after evidence capture, preserving retained evidence and ordinary false defaults.
-- [ ] 8.11 Run final build/reconstruction/repository/diff/OpenSpec checks, sync the accepted delta only after evidence is reconciled, archive only through the explicit archive workflow when every applicable task is complete, and leave the worktree clean.
+- [x] 8.1 Only after task 7.5 passes, run the unchanged variant for all 64 iterations on the same intended console/configuration and retain the complete combined unfiltered stream.
+- [x] 8.2 Read the entire variant log before filtering and inspect startup, all records, teardown, warnings, timeout, notifier/error-info, GPU faults, and observer effects.
+- [x] 8.3 Prove bit 255 one on every selected variant QMD, exact selected/counterfactual one-bit differences, exact selected-to-mapped copies, identical corresponding root encodings/schedule, 63/63 root and QMD transitions, 64/64 `PCAS` correlations, ordering, and complete fault evidence.
+- [x] 8.4 Compare all 64 pixels/checksums and independent oracle decisions with expected values and the valid control, retaining any changed signature exactly.
+- [x] 8.5 Produce a paired causal table covering commits/artifacts/selectors, iteration/seed, root contents/addresses, QMD full-payload decisions and addresses, direct dispatch, ordering, output/oracle, teardown, and notifier/error state.
+- [x] 8.6 Apply exactly one result: `qmd_shader_constant_cache_invalidate_supported_experiment_only`, `specific_qmd_shader_constant_cache_invalidate_insufficient`, `behavior_changed_unresolved`, or `inconclusive`; make no broader cache, backing, lifetime, or NVK claim.
+- [x] 8.7 Retain complete raw logs, a full hardware record, and a narrow research finding; update `MILESTONES.md` and `docs/status/CAPABILITY_MATRIX.md` only with the exact result and limits while keeping FG-2 `BLOCKED` and FG-3/FG-4 unchanged.
+- [x] 8.8 If exactly negative, name root reuse distance only as the next separate OpenSpec discriminator; if changed-but-failing, derive one smaller separate discriminator; do not implement either or combine another Gallium field here.
+- [x] 8.9 If supported experimentally, record that a separate production-remediation decision and separate ordinary image-chain 64/64 real-hardware acceptance change are mandatory before any promotion.
+- [x] 8.10 Leave the selector opt-in or roll back experiment-only call-site wiring after evidence capture, preserving retained evidence and ordinary false defaults.
+- [x] 8.11 Run final build/reconstruction/repository/diff/OpenSpec checks, sync the accepted delta only after evidence is reconciled, archive only through the explicit archive workflow when every applicable task is complete, and leave the worktree clean.

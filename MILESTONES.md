@@ -91,9 +91,11 @@ same exact stale compute-seed signature. The shared-layout/cache-interaction hyp
 exact stale signature. The completed root-address pair produced `behavior_changed_unresolved`: the valid
 control retained the original stale signature, while the 63/63 fresh-root variant passed iterations
 1-2 and then retained iteration-2/seed-42 output through iteration 64. This is not a production fix;
-the current separately controlled discriminator changes only QMD v0.6
-`INVALIDATE_SHADER_CONSTANT_CACHE` bit 255 while preserving that exact A/B-root and X/Y-QMD
-schedule. FG-2 remains `BLOCKED`; host implementation does not establish GPU consumption.
+the completed QMD v0.6 `INVALIDATE_SHADER_CONSTANT_CACHE` bit-255 pair produced
+`specific_qmd_shader_constant_cache_invalidate_insufficient`: its valid control reproduced the
+seed-42-retention signature, and all 64 variant outputs remained identical while every causal check
+passed. Root reuse distance is the next separate discriminator; it is not combined here. FG-2
+remains `BLOCKED`.
 
 ---
 
