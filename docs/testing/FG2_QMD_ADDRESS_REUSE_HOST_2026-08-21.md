@@ -92,5 +92,6 @@ Host validation:
 | generated `tri_shaders.h` | `21b2d465433f85e46c400de74c2ff3c96b5ab0bd878aa027f5e221168773fa14` |
 | durable Mesa patch | `37b85d38601b7de621ff9dd79ff941e62c9a22e8c82325283d8f8519b559bade` |
 
-The exact immutable source commit remains to be created and recorded before hardware. Host evidence
-supports only `IMPLEMENTED_UNPROVEN`; FG-2 remains `BLOCKED`.
+Immutable experiment source commit: `c83aca57c680fd6cf53275f96852d53191b7c443`. Both artifacts were
+rebuilt after that commit and reproduced the recorded hashes exactly; the shader hashes also remained
+identical. Host evidence supports only `IMPLEMENTED_UNPROVEN`; FG-2 remains `BLOCKED`.

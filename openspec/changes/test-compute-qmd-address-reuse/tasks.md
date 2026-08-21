@@ -34,12 +34,12 @@
 - [x] 5.1 Verify the complete durable patch applies cleanly to pristine Mesa 25.0.7 and that touched regenerated sources match the durable representation byte-for-byte.
 - [x] 5.2 Cross-build NVK plus the control and fresh-address NROs and run applicable host/static checks for selector parsing, slot allocation/alignment/distinctness, exact comparison failure paths, record/order reset, control-primary reuse, 63/63 variant alternation, dispatch correlation, and bounded summaries without making a hardware claim.
 - [x] 5.3 Compare same-source artifacts and generated shaders; prove allocation calls/order, QMD generation/copy, root behavior, method structure, resources, synchronization, submission/waits, and oracle are identical except for selector/reporting and the selected QMD address operand, explicitly avoiding a raw GPU-command-byte identity claim.
-- [ ] 5.4 Record commit, build commands, control/variant artifact hashes, generated shader hashes, selector/log schema, source-equivalence checks, and all host results in a host evidence record classified only as `PROVEN_HOST` or `IMPLEMENTED_UNPROVEN`.
+- [x] 5.4 Record commit, build commands, control/variant artifact hashes, generated shader hashes, selector/log schema, source-equivalence checks, and all host results in a host evidence record classified only as `PROVEN_HOST` or `IMPLEMENTED_UNPROVEN`.
 - [x] 5.5 Stop before hardware if the host evidence cannot guarantee the full 63-transition freshness contract, exact payload/copy invariants, or sole-variable isolation.
 
 ## 6. Run and gate on the real-Tegra control
 
-- [ ] 6.1 Commit the exact experiment source and verify both recorded artifacts and shader hashes derive from that immutable revision before contacting hardware.
+- [x] 6.1 Commit the exact experiment source and verify both recorded artifacts and shader hashes derive from that immutable revision before contacting hardware.
 - [ ] 6.2 Run only the control for all 64 iterations on real Switch/Tegra hardware, retain the complete unfiltered stream, and inspect it before filtering for unexpected warnings, timeout, `ERRNOTIF`, `ERRINFO`, or another GPU fault.
 - [ ] 6.3 Require the control to reproduce iteration-1 seed-5 exact output, the exact iterations-2-64 `0xfab61a38`/`0xc17a35a5` stale signature, reused root and primary QMD addresses, complete QMD equality/copy evidence, `PCAS` correlation, ordinary command behavior, and a clean interpretable fault state.
 - [ ] 6.4 If any control prerequisite fails, retain the complete evidence, classify the comparison `inconclusive`, do not run the variant, and stop without widening the experiment.
