@@ -86,8 +86,10 @@ Acceptance:
 Current result: immutable artifacts `4b1ba31` and shared-layout controlled variant `d9dfc65` each
 executed all 64 iterations on real hardware, but only the first iteration matched. Both produced the
 same exact stale compute-seed signature. The shared-layout/cache-interaction hypothesis is
-`REJECTED`; lower-level descriptor-root, QMD upload/address, and GPU-visible constant-buffer
-instrumentation is required before another semantic change.
+`REJECTED`. Retained identity evidence proves current root bytes are encoded in a byte-identical QMD
+copy at the reused QMD GPU VA and selected by direct `PCAS`; the immediate discriminating boundary
+is now whether changing only the QMD storage address relative to the preceding dispatch changes GPU
+consumption. FG-2 remains `BLOCKED` pending that separately controlled hardware experiment.
 
 ---
 

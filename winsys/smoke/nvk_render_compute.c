@@ -56,6 +56,14 @@ extern void (*g_drm_shim_log_sink)(const char *);
 #define FG2_QMD_UPLOAD_CACHE_FLUSH 0u
 #endif
 
+#ifndef FG2_QMD_ADDRESS_CONTROL
+#define FG2_QMD_ADDRESS_CONTROL 0u
+#endif
+
+#ifndef FG2_QMD_ADDRESS_FRESH
+#define FG2_QMD_ADDRESS_FRESH 0u
+#endif
+
 #if FG2_ROOT_UPLOAD_CACHE_FLUSH != 0u && FG2_ROOT_UPLOAD_CACHE_FLUSH != 1u
 #error "FG2_ROOT_UPLOAD_CACHE_FLUSH must be 0 or 1"
 #endif
@@ -72,13 +80,37 @@ extern void (*g_drm_shim_log_sink)(const char *);
 #error "FG2_QMD_UPLOAD_CACHE_FLUSH requires FG2_QMD_UPLOAD_IDENTITY=1"
 #endif
 
-#if FG2_QMD_UPLOAD_IDENTITY == 1u && FG2_ROOT_DIAG_LIMIT == 0u
+#if FG2_QMD_ADDRESS_CONTROL != 0u && FG2_QMD_ADDRESS_CONTROL != 1u
+#error "FG2_QMD_ADDRESS_CONTROL must be 0 or 1"
+#endif
+
+#if FG2_QMD_ADDRESS_FRESH != 0u && FG2_QMD_ADDRESS_FRESH != 1u
+#error "FG2_QMD_ADDRESS_FRESH must be 0 or 1"
+#endif
+
+#if FG2_QMD_ADDRESS_CONTROL == 1u && FG2_QMD_ADDRESS_FRESH == 1u
+#error "FG2 QMD address selectors are mutually exclusive"
+#endif
+
+#if (FG2_QMD_ADDRESS_CONTROL == 1u || FG2_QMD_ADDRESS_FRESH == 1u) && \
+    (FG2_ROOT_UPLOAD_CACHE_FLUSH == 1u || FG2_QMD_UPLOAD_CACHE_FLUSH == 1u)
+#error "FG2 QMD address experiment requires cache selectors disabled"
+#endif
+
+#if (FG2_QMD_ADDRESS_CONTROL == 1u || FG2_QMD_ADDRESS_FRESH == 1u) && \
+    FG2_ROOT_DIAG_LIMIT == 0u
+#define FG2_EFFECTIVE_DIAG_LIMIT 64u
+#elif FG2_QMD_UPLOAD_IDENTITY == 1u && FG2_ROOT_DIAG_LIMIT == 0u
 #define FG2_EFFECTIVE_DIAG_LIMIT 2u
 #else
 #define FG2_EFFECTIVE_DIAG_LIMIT FG2_ROOT_DIAG_LIMIT
 #endif
 
-#if FG2_QMD_UPLOAD_CACHE_FLUSH == 1u
+#if FG2_QMD_ADDRESS_FRESH == 1u
+#define FG2_BUILD_TAG "chain2-qmd-address-fresh"
+#elif FG2_QMD_ADDRESS_CONTROL == 1u
+#define FG2_BUILD_TAG "chain2-qmd-address-control"
+#elif FG2_QMD_UPLOAD_CACHE_FLUSH == 1u
 #define FG2_BUILD_TAG "chain2-qmdcache1"
 #elif FG2_QMD_UPLOAD_IDENTITY == 1u
 #define FG2_BUILD_TAG "chain2-qmdidentity1-control"
@@ -244,13 +276,20 @@ int main(void)
        FG2_QMD_UPLOAD_IDENTITY, FG2_QMD_UPLOAD_CACHE_FLUSH,
        FG2_QMD_UPLOAD_CACHE_FLUSH ? "eligible_reused_qmd_only" :
        (FG2_QMD_UPLOAD_IDENTITY ? "identity_only_no_qmd_flush" : "ordinary"));
+   LOG("FG2_QMD_ADDRESS experiment=%s control_selector=%u fresh_selector=%u path=%s transitions=63 addresses_may_recur_after_one_dispatch=1",
+       FG2_QMD_ADDRESS_FRESH ? "fresh_address_variant" :
+       (FG2_QMD_ADDRESS_CONTROL ? "same_source_control" : "disabled"),
+       FG2_QMD_ADDRESS_CONTROL, FG2_QMD_ADDRESS_FRESH,
+       FG2_QMD_ADDRESS_FRESH ? "alternating_primary_secondary" :
+       (FG2_QMD_ADDRESS_CONTROL ? "primary_only" : "ordinary_one_slot"));
 
    g_drm_shim_log_sink = shim_log_sink;
    setenv("NVK_I_WANT_A_BROKEN_VULKAN_DRIVER", "1", 1);
    setenv("MESA_SHADER_CACHE_DISABLE", "1", 1);
    setenv("MESA_LOG_FILE", "sdmc:/nvk_render_compute_mesa.log", 1);
    if (FG2_EFFECTIVE_DIAG_LIMIT > 0u) {
-      char trace_limit[2] = { (char)('0' + FG2_EFFECTIVE_DIAG_LIMIT), '\0' };
+      char trace_limit[4];
+      snprintf(trace_limit, sizeof(trace_limit), "%u", FG2_EFFECTIVE_DIAG_LIMIT);
       setenv("NVK_ROOT_TRACE", trace_limit, 1);
    }
    if (FG2_ROOT_UPLOAD_CACHE_FLUSH == 1u)
@@ -259,6 +298,10 @@ int main(void)
       setenv("NVK_QMD_UPLOAD_IDENTITY", "1", 1);
    if (FG2_QMD_UPLOAD_CACHE_FLUSH == 1u)
       setenv("NVK_QMD_UPLOAD_CACHE_FLUSH", "1", 1);
+   if (FG2_QMD_ADDRESS_CONTROL == 1u)
+      setenv("NVK_QMD_ADDRESS_CONTROL", "1", 1);
+   if (FG2_QMD_ADDRESS_FRESH == 1u)
+      setenv("NVK_QMD_ADDRESS_FRESH", "1", 1);
 
    PFN_vkCreateInstance pCreateInstance =
       (PFN_vkCreateInstance)vk_icdGetInstanceProcAddr(NULL, "vkCreateInstance");
@@ -706,6 +749,15 @@ int main(void)
             bad_images++;
          }
       }
+      if (FG2_QMD_ADDRESS_CONTROL == 1u || FG2_QMD_ADDRESS_FRESH == 1u) {
+         const uint32_t observed_checksum = checksum_words(readback_cpu, ELEMENTS);
+         LOG("FG2_QMD_ADDRESS phase=result path=%s record=%u iteration=%u seed=%u pixel=0x%08x checksum=0x%08x expected_pixel=0x%08x expected_checksum=0x%08x oracle_match=%u mismatches=%u fault_state=INSPECT_COMPLETE_STREAM",
+             FG2_QMD_ADDRESS_FRESH ? "fresh" : "control",
+             iteration + 1u, iteration + 1u, seed,
+             ((uint32_t *)readback_cpu)[0], observed_checksum,
+             expected_image_pixel(0, 0, seed), expected_image_checksum(seed),
+             bad_images == 0, bad_images);
+      }
       if (bad_images) {
          failures++;
          uint32_t x = first_bad % IMAGE_W, y = first_bad / IMAGE_W;
@@ -719,6 +771,10 @@ int main(void)
              checksum_words(readback_cpu, ELEMENTS), expected_image_checksum(seed));
       }
    }
+   if (FG2_QMD_ADDRESS_CONTROL == 1u || FG2_QMD_ADDRESS_FRESH == 1u)
+      LOG("FG2_QMD_ADDRESS phase=oracle_aggregate path=%s validations=%u/64 mismatched_iterations=%u fault_state=INSPECT_COMPLETE_STREAM",
+          FG2_QMD_ADDRESS_FRESH ? "fresh" : "control",
+          ITERATIONS - failures, failures);
    if (failures == 0) {
       uint32_t final_seed = iteration_seed(ITERATIONS - 1u);
       LOG("RESULT PASS: %u/%u iterations exact; final checksum observed=0x%08x expected=0x%08x",

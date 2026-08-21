@@ -1,8 +1,7 @@
 diff --git a/src/c11/impl/threads_posix.c b/src/c11/impl/threads_posix.c
-index 3b86924..f98ad96 100644
 --- a/src/c11/impl/threads_posix.c
 +++ b/src/c11/impl/threads_posix.c
-@@ -19,7 +19,8 @@ Configuration macro:
+@@ -19,7 +19,8 @@
      Use pthread_mutex_timedlock() for `mtx_timedlock()'
      Otherwise use mtx_trylock() + *busy loop* emulation.
  */
@@ -13,10 +12,9 @@ index 3b86924..f98ad96 100644
  #endif
  
 diff --git a/src/nouveau/vulkan/nvk_cmd_draw.c b/src/nouveau/vulkan/nvk_cmd_draw.c
-index 5b11490..07c0fae 100644
 --- a/src/nouveau/vulkan/nvk_cmd_draw.c
 +++ b/src/nouveau/vulkan/nvk_cmd_draw.c
-@@ -69,7 +69,17 @@ nvk_mme_set_priv_reg(struct mme_builder *b)
+@@ -69,7 +69,17 @@
     struct mme_value mask = mme_load(b);
     struct mme_value reg = mme_load(b);
  
@@ -36,7 +34,6 @@ index 5b11490..07c0fae 100644
  
  void
 diff --git a/src/nouveau/vulkan/nvk_image.c b/src/nouveau/vulkan/nvk_image.c
-index b769c4a..8024ce0 100644
 --- a/src/nouveau/vulkan/nvk_image.c
 +++ b/src/nouveau/vulkan/nvk_image.c
 @@ -24,6 +24,50 @@
@@ -90,7 +87,7 @@ index b769c4a..8024ce0 100644
  static VkFormatFeatureFlags2
  nvk_get_image_plane_format_features(struct nvk_physical_device *pdev,
                                      VkFormat vk_format, VkImageTiling tiling,
-@@ -854,6 +898,26 @@ nvk_image_init(struct nvk_device *dev,
+@@ -854,6 +898,26 @@
        };
  
        image->planes[plane].nil = nil_image_new(&pdev->info, &nil_info);
@@ -118,20 +115,19 @@ index b769c4a..8024ce0 100644
  
     if (image->vk.format == VK_FORMAT_D32_SFLOAT_S8_UINT) {
 diff --git a/src/nouveau/vulkan/nvk_instance.c b/src/nouveau/vulkan/nvk_instance.c
-index edaba41..b42ff46 100644
 --- a/src/nouveau/vulkan/nvk_instance.c
 +++ b/src/nouveau/vulkan/nvk_instance.c
-@@ -59,6 +59,9 @@ static const struct vk_instance_extension_table instance_extensions = {
- #endif
+@@ -60,6 +60,9 @@
  #ifndef VK_USE_PLATFORM_WIN32_KHR
     .EXT_headless_surface = true,
-+#endif
+ #endif
 +#ifdef VK_USE_PLATFORM_VI_NN
 +   .NN_vi_surface = true,
- #endif
++#endif
     .KHR_device_group_creation = true,
     .KHR_external_fence_capabilities = true,
-@@ -168,6 +171,8 @@ nvk_CreateInstance(const VkInstanceCreateInfo *pCreateInfo,
+    .KHR_external_memory_capabilities = true,
+@@ -168,6 +171,8 @@
        nvk_create_drm_physical_device;
     instance->vk.physical_devices.destroy = nvk_physical_device_destroy;
  
@@ -140,7 +136,7 @@ index edaba41..b42ff46 100644
     const struct build_id_note *note =
        build_id_find_nhdr_for_addr(nvk_CreateInstance);
     if (!note) {
-@@ -183,8 +188,17 @@ nvk_CreateInstance(const VkInstanceCreateInfo *pCreateInfo,
+@@ -183,8 +188,17 @@
        goto fail_init;
     }
  
@@ -160,10 +156,9 @@ index edaba41..b42ff46 100644
  #if DETECT_OS_ANDROID
     struct u_gralloc *u_gralloc = vk_android_init_ugralloc();
 diff --git a/src/nouveau/vulkan/nvk_physical_device.h b/src/nouveau/vulkan/nvk_physical_device.h
-index 74592db..b2e4f1f 100644
 --- a/src/nouveau/vulkan/nvk_physical_device.h
 +++ b/src/nouveau/vulkan/nvk_physical_device.h
-@@ -96,4 +96,13 @@ VkExtent2D nvk_max_shading_rate(const struct nvk_physical_device *pdev,
+@@ -96,4 +96,13 @@
  #define NVK_USE_WSI_PLATFORM
  #endif
  
@@ -178,7 +173,6 @@ index 74592db..b2e4f1f 100644
 +
  #endif
 diff --git a/src/nouveau/vulkan/nvk_queue.c b/src/nouveau/vulkan/nvk_queue.c
-index b8571c0..1683c7e 100644
 --- a/src/nouveau/vulkan/nvk_queue.c
 +++ b/src/nouveau/vulkan/nvk_queue.c
 @@ -19,6 +19,23 @@
@@ -205,7 +199,7 @@ index b8571c0..1683c7e 100644
  static VkResult
  nvk_queue_submit_simple(struct nvk_queue *queue,
                          uint32_t dw_count, const uint32_t *dw);
-@@ -276,13 +293,18 @@ nvk_queue_submit_exec(struct nvk_queue *queue,
+@@ -276,13 +293,18 @@
  
     const bool sync = pdev->debug_flags & NVK_DEBUG_PUSH_SYNC;
  
@@ -224,7 +218,7 @@ index b8571c0..1683c7e 100644
        if (result != VK_SUCCESS)
           return result;
  
-@@ -292,17 +314,22 @@ nvk_queue_submit_exec(struct nvk_queue *queue,
+@@ -292,17 +314,22 @@
              .stage_mask = ~0,
              .wait_value = upload_time_point,
           };
@@ -247,7 +241,7 @@ index b8571c0..1683c7e 100644
     for (unsigned i = 0; i < submit->command_buffer_count; i++) {
        struct nvk_cmd_buffer *cmd =
           container_of(submit->command_buffers[i], struct nvk_cmd_buffer, vk);
-@@ -332,8 +359,10 @@ nvk_queue_submit_exec(struct nvk_queue *queue,
+@@ -332,8 +359,10 @@
           goto fail;
     }
  
@@ -259,10 +253,9 @@ index b8571c0..1683c7e 100644
        goto fail;
  
 diff --git a/src/nouveau/vulkan/nvk_wsi.c b/src/nouveau/vulkan/nvk_wsi.c
-index deaecb7..3b9a519 100644
 --- a/src/nouveau/vulkan/nvk_wsi.c
 +++ b/src/nouveau/vulkan/nvk_wsi.c
-@@ -32,8 +32,19 @@ nvk_init_wsi(struct nvk_physical_device *pdev)
+@@ -32,8 +32,19 @@
        return result;
  
     pdev->wsi_device.supports_scanout = false;
@@ -283,10 +276,9 @@ index deaecb7..3b9a519 100644
     pdev->vk.wsi_device = &pdev->wsi_device;
  
 diff --git a/src/nouveau/vulkan/nvkmd/nouveau/nvkmd_nouveau.h b/src/nouveau/vulkan/nvkmd/nouveau/nvkmd_nouveau.h
-index d4eb882..1c4da02 100644
 --- a/src/nouveau/vulkan/nvkmd/nouveau/nvkmd_nouveau.h
 +++ b/src/nouveau/vulkan/nvkmd/nouveau/nvkmd_nouveau.h
-@@ -36,11 +36,14 @@ VkResult nvkmd_nouveau_try_create_pdev(struct _drmDevice *drm_device,
+@@ -36,11 +36,14 @@
                                         enum nvk_debug debug_flags,
                                         struct nvkmd_pdev **pdev_out);
  
@@ -306,10 +298,9 @@ index d4eb882..1c4da02 100644
  struct nvkmd_nouveau_dev {
     struct nvkmd_dev base;
 diff --git a/src/nouveau/vulkan/nvkmd/nouveau/nvkmd_nouveau_dev.c b/src/nouveau/vulkan/nvkmd/nouveau/nvkmd_nouveau_dev.c
-index 1b35081..1e00f1e 100644
 --- a/src/nouveau/vulkan/nvkmd/nouveau/nvkmd_nouveau_dev.c
 +++ b/src/nouveau/vulkan/nvkmd/nouveau/nvkmd_nouveau_dev.c
-@@ -47,6 +47,30 @@ nvkmd_nouveau_create_dev(struct nvkmd_pdev *_pdev,
+@@ -47,6 +47,30 @@
  
     simple_mtx_init(&dev->heap_mutex, mtx_plain);
  
@@ -340,7 +331,7 @@ index 1b35081..1e00f1e 100644
     STATIC_ASSERT(NVKMD_NOUVEAU_HEAP_START < NVKMD_NOUVEAU_HEAP_END);
     util_vma_heap_init(&dev->heap, NVKMD_NOUVEAU_HEAP_START,
                        NVKMD_NOUVEAU_HEAP_END - NVKMD_NOUVEAU_HEAP_START);
-@@ -56,6 +80,7 @@ nvkmd_nouveau_create_dev(struct nvkmd_pdev *_pdev,
+@@ -56,6 +80,7 @@
     util_vma_heap_init(&dev->replay_heap,
        NVKMD_NOUVEAU_REPLAY_HEAP_START,
        NVKMD_NOUVEAU_REPLAY_HEAP_END - NVKMD_NOUVEAU_REPLAY_HEAP_START);
@@ -349,7 +340,6 @@ index 1b35081..1e00f1e 100644
     *dev_out = &dev->base;
  
 diff --git a/src/nouveau/vulkan/nvkmd/nouveau/nvkmd_nouveau_va.c b/src/nouveau/vulkan/nvkmd/nouveau/nvkmd_nouveau_va.c
-index 922215d..fa3f63d 100644
 --- a/src/nouveau/vulkan/nvkmd/nouveau/nvkmd_nouveau_va.c
 +++ b/src/nouveau/vulkan/nvkmd/nouveau/nvkmd_nouveau_va.c
 @@ -13,6 +13,19 @@
@@ -372,7 +362,7 @@ index 922215d..fa3f63d 100644
  static VkResult MUST_CHECK
  alloc_heap_addr_locked(struct nvkmd_nouveau_dev *dev,
                         struct vk_object_base *log_obj,
-@@ -44,14 +57,18 @@ alloc_heap_addr_locked(struct nvkmd_nouveau_dev *dev,
+@@ -44,14 +57,18 @@
        *addr_out = fixed_addr;
     } else if (flags & NVKMD_VA_REPLAY) {
        *addr_out = util_vma_heap_alloc(&dev->replay_heap, size_B, align_B);
@@ -394,7 +384,6 @@ index 922215d..fa3f63d 100644
  
     return VK_SUCCESS;
 diff --git a/src/util/detect_os.h b/src/util/detect_os.h
-index 86286df..4998c34 100644
 --- a/src/util/detect_os.h
 +++ b/src/util/detect_os.h
 @@ -91,6 +91,14 @@
@@ -422,7 +411,6 @@ index 86286df..4998c34 100644
  
  #endif /* DETECT_OS_H */
 diff --git a/src/util/libdrm.h b/src/util/libdrm.h
-index 4bfe1d2..e6f621e 100644
 --- a/src/util/libdrm.h
 +++ b/src/util/libdrm.h
 @@ -27,7 +27,11 @@
@@ -439,7 +427,6 @@ index 4bfe1d2..e6f621e 100644
  #else
  
 diff --git a/src/util/os_misc.c b/src/util/os_misc.c
-index 4b79166..67af0b5 100644
 --- a/src/util/os_misc.c
 +++ b/src/util/os_misc.c
 @@ -57,7 +57,7 @@
@@ -451,7 +438,7 @@ index 4b79166..67af0b5 100644
  #  include <unistd.h>
  #elif DETECT_OS_OPENBSD || DETECT_OS_FREEBSD
  #  include <sys/resource.h>
-@@ -332,6 +332,11 @@ os_get_total_physical_memory(uint64_t *size)
+@@ -332,6 +332,11 @@
  #elif DETECT_OS_FUCHSIA
     *size = zx_system_get_physmem();
     return true;
@@ -464,7 +451,6 @@ index 4b79166..67af0b5 100644
  #error unexpected platform in os_misc.c
     return false;
 diff --git a/src/util/u_endian.h b/src/util/u_endian.h
-index b01f730..6087c3e 100644
 --- a/src/util/u_endian.h
 +++ b/src/util/u_endian.h
 @@ -89,6 +89,19 @@
@@ -488,10 +474,9 @@ index b01f730..6087c3e 100644
  # error "UTIL_ARCH_LITTLE_ENDIAN and/or UTIL_ARCH_BIG_ENDIAN were unset."
  #elif UTIL_ARCH_LITTLE_ENDIAN == UTIL_ARCH_BIG_ENDIAN
 diff --git a/src/vulkan/runtime/meson.build b/src/vulkan/runtime/meson.build
-index 9d34ae4..4908404 100644
 --- a/src/vulkan/runtime/meson.build
 +++ b/src/vulkan/runtime/meson.build
-@@ -57,6 +57,13 @@ vulkan_lite_runtime_deps = [
+@@ -57,6 +57,13 @@
  if dep_libdrm.found()
    vulkan_lite_runtime_files += files('vk_drm_syncobj.c')
    vulkan_lite_runtime_deps += dep_libdrm
@@ -506,10 +491,9 @@ index 9d34ae4..4908404 100644
  
  if with_platform_android
 diff --git a/src/vulkan/runtime/vk_image.c b/src/vulkan/runtime/vk_image.c
-index ac22917..fd3dc4e 100644
 --- a/src/vulkan/runtime/vk_image.c
 +++ b/src/vulkan/runtime/vk_image.c
-@@ -96,7 +96,7 @@ vk_image_init(struct vk_device *device,
+@@ -96,7 +96,7 @@
        vk_find_struct_const(pCreateInfo->pNext, WSI_IMAGE_CREATE_INFO_MESA);
     image->wsi_legacy_scanout = wsi_info && wsi_info->scanout;
  
@@ -519,10 +503,9 @@ index ac22917..fd3dc4e 100644
  #endif
  
 diff --git a/src/vulkan/runtime/vk_image.h b/src/vulkan/runtime/vk_image.h
-index 71dadab..03adbbc 100644
 --- a/src/vulkan/runtime/vk_image.h
 +++ b/src/vulkan/runtime/vk_image.h
-@@ -75,7 +75,7 @@ struct vk_image {
+@@ -75,7 +75,7 @@
     /* wsi_image_create_info::scanout */
     bool wsi_legacy_scanout;
  
@@ -532,10 +515,9 @@ index 71dadab..03adbbc 100644
      *
      * Initialized by vk_image_create/init() to DRM_FORMAT_MOD_INVALID.  It's
 diff --git a/src/vulkan/runtime/vk_instance.c b/src/vulkan/runtime/vk_instance.c
-index ff72f59..b183945 100644
 --- a/src/vulkan/runtime/vk_instance.c
 +++ b/src/vulkan/runtime/vk_instance.c
-@@ -405,6 +405,17 @@ enumerate_drm_physical_devices_locked(struct vk_instance *instance)
+@@ -405,6 +405,17 @@
     drmDevicePtr devices[256];
     int max_devices = drmGetDevices2(0, devices, ARRAY_SIZE(devices));
  
@@ -553,7 +535,7 @@ index ff72f59..b183945 100644
     if (max_devices < 1)
        return VK_SUCCESS;
  
-@@ -433,6 +444,16 @@ enumerate_drm_physical_devices_locked(struct vk_instance *instance)
+@@ -433,6 +444,16 @@
  static VkResult
  enumerate_physical_devices_locked(struct vk_instance *instance)
  {
@@ -571,10 +553,9 @@ index ff72f59..b183945 100644
        VkResult result = instance->physical_devices.enumerate(instance);
        if (result != VK_ERROR_INCOMPATIBLE_DRIVER)
 diff --git a/src/vulkan/wsi/meson.build b/src/vulkan/wsi/meson.build
-index 6933eb7..27c766b 100644
 --- a/src/vulkan/wsi/meson.build
 +++ b/src/vulkan/wsi/meson.build
-@@ -31,6 +31,11 @@ else
+@@ -31,6 +31,11 @@
    files_vulkan_wsi += files('wsi_common_headless.c')
  endif
  
@@ -587,10 +568,9 @@ index 6933eb7..27c766b 100644
    files_vulkan_wsi += files('wsi_common_metal.c', 'wsi_common_metal_layer.m')
  endif
 diff --git a/src/vulkan/wsi/wsi_common.c b/src/vulkan/wsi/wsi_common.c
-index 120aa06..11a3b08 100644
 --- a/src/vulkan/wsi/wsi_common.c
 +++ b/src/vulkan/wsi/wsi_common.c
-@@ -248,6 +248,12 @@ wsi_device_init(struct wsi_device *wsi,
+@@ -248,6 +248,12 @@
        goto fail;
  #endif
  
@@ -603,7 +583,7 @@ index 120aa06..11a3b08 100644
     present_mode = getenv("MESA_VK_WSI_PRESENT_MODE");
     if (present_mode) {
        if (!strcmp(present_mode, "fifo")) {
-@@ -309,6 +315,9 @@ wsi_device_finish(struct wsi_device *wsi,
+@@ -309,6 +315,9 @@
  {
  #ifndef VK_USE_PLATFORM_WIN32_KHR
     wsi_headless_finish_wsi(wsi, alloc);
@@ -613,7 +593,7 @@ index 120aa06..11a3b08 100644
  #endif
  #ifdef VK_USE_PLATFORM_DISPLAY_KHR
     wsi_display_finish_wsi(wsi, alloc);
-@@ -971,6 +980,21 @@ wsi_GetPhysicalDevicePresentRectanglesKHR(VkPhysicalDevice physicalDevice,
+@@ -971,6 +980,21 @@
                                          pRectCount, pRects);
  }
  
@@ -635,7 +615,7 @@ index 120aa06..11a3b08 100644
  VKAPI_ATTR VkResult VKAPI_CALL
  wsi_CreateSwapchainKHR(VkDevice _device,
                         const VkSwapchainCreateInfoKHR *pCreateInfo,
-@@ -1009,6 +1033,8 @@ wsi_CreateSwapchainKHR(VkDevice _device,
+@@ -1009,6 +1033,8 @@
     VkResult result = iface->create_swapchain(surface, _device, wsi_device,
                                               &info, alloc,
                                               &swapchain);
@@ -644,7 +624,7 @@ index 120aa06..11a3b08 100644
     if (result != VK_SUCCESS)
        return result;
  
-@@ -1017,6 +1043,7 @@ wsi_CreateSwapchainKHR(VkDevice _device,
+@@ -1017,6 +1043,7 @@
                                   sizeof (*swapchain->fences),
                                   VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
     if (!swapchain->fences) {
@@ -652,7 +632,7 @@ index 120aa06..11a3b08 100644
        swapchain->destroy(swapchain, alloc);
        return VK_ERROR_OUT_OF_HOST_MEMORY;
     }
-@@ -1035,6 +1062,7 @@ wsi_CreateSwapchainKHR(VkDevice _device,
+@@ -1035,6 +1062,7 @@
  
        /* We assume here that a driver exposing present_wait also exposes VK_KHR_timeline_semaphore. */
        result = wsi_device->CreateSemaphore(_device, &sem_info, alloc, &swapchain->present_id_timeline);
@@ -660,7 +640,7 @@ index 120aa06..11a3b08 100644
        if (result != VK_SUCCESS) {
           swapchain->destroy(swapchain, alloc);
           return VK_ERROR_OUT_OF_HOST_MEMORY;
-@@ -1047,12 +1075,14 @@ wsi_CreateSwapchainKHR(VkDevice _device,
+@@ -1047,12 +1075,14 @@
                                           sizeof (*swapchain->blit.semaphores),
                                           VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
        if (!swapchain->blit.semaphores) {
@@ -675,7 +655,7 @@ index 120aa06..11a3b08 100644
     *pSwapchain = wsi_swapchain_to_handle(swapchain);
  
     return VK_SUCCESS;
-@@ -1420,9 +1450,11 @@ wsi_common_queue_present(const struct wsi_device *wsi,
+@@ -1420,9 +1450,11 @@
           }
        } else {
           MESA_TRACE_SCOPE("throttle");
@@ -687,7 +667,7 @@ index 120aa06..11a3b08 100644
           if (result != VK_SUCCESS)
              goto fail_present;
        }
-@@ -1534,7 +1566,10 @@ wsi_common_queue_present(const struct wsi_device *wsi,
+@@ -1534,7 +1566,10 @@
           }
        }
  
@@ -698,7 +678,7 @@ index 120aa06..11a3b08 100644
        if (result != VK_SUCCESS)
           goto fail_present;
  
-@@ -1576,7 +1611,9 @@ wsi_common_queue_present(const struct wsi_device *wsi,
+@@ -1576,7 +1611,9 @@
              goto fail_present;
        }
  
@@ -709,10 +689,9 @@ index 120aa06..11a3b08 100644
           goto fail_present;
  
 diff --git a/src/vulkan/wsi/wsi_common.h b/src/vulkan/wsi/wsi_common.h
-index fee7090..ed347a6 100644
 --- a/src/vulkan/wsi/wsi_common.h
 +++ b/src/vulkan/wsi/wsi_common.h
-@@ -97,7 +97,12 @@ struct vk_instance;
+@@ -97,7 +97,12 @@
  
  struct driOptionCache;
  
@@ -726,7 +705,6 @@ index fee7090..ed347a6 100644
  struct wsi_device {
     /* Allocator for the instance */
 diff --git a/src/vulkan/wsi/wsi_common_headless.c b/src/vulkan/wsi/wsi_common_headless.c
-index 7fff55b..95552d7 100644
 --- a/src/vulkan/wsi/wsi_common_headless.c
 +++ b/src/vulkan/wsi/wsi_common_headless.c
 @@ -38,6 +38,19 @@
@@ -749,7 +727,7 @@ index 7fff55b..95552d7 100644
  struct wsi_headless {
     struct wsi_interface base;
  
-@@ -445,6 +458,8 @@ wsi_headless_surface_create_swapchain(VkIcdSurfaceBase *icd_surface,
+@@ -445,6 +458,8 @@
     assert(pCreateInfo->sType == VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR);
  
     int num_images = pCreateInfo->minImageCount;
@@ -758,7 +736,7 @@ index 7fff55b..95552d7 100644
  
     size_t size = sizeof(*chain) + num_images * sizeof(chain->images[0]);
     chain = vk_zalloc(pAllocator, size, 8, VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
-@@ -458,6 +473,7 @@ wsi_headless_surface_create_swapchain(VkIcdSurfaceBase *icd_surface,
+@@ -458,6 +473,7 @@
  
     result = wsi_swapchain_init(wsi_device, &chain->base, device,
                                 pCreateInfo, &drm_params.base, pAllocator);
@@ -766,7 +744,7 @@ index 7fff55b..95552d7 100644
     if (result != VK_SUCCESS) {
        vk_free(pAllocator, chain);
        return result;
-@@ -478,6 +494,7 @@ wsi_headless_surface_create_swapchain(VkIcdSurfaceBase *icd_surface,
+@@ -478,6 +494,7 @@
     for (uint32_t i = 0; i < chain->base.image_count; i++) {
        result = wsi_create_image(&chain->base, &chain->base.image_info,
                                  &chain->images[i].base);
@@ -775,10 +753,9 @@ index 7fff55b..95552d7 100644
           goto fail;
  
 diff --git a/src/vulkan/wsi/wsi_common_private.h b/src/vulkan/wsi/wsi_common_private.h
-index 849bdc6..9178e09 100644
 --- a/src/vulkan/wsi/wsi_common_private.h
 +++ b/src/vulkan/wsi/wsi_common_private.h
-@@ -444,6 +444,14 @@ VkResult wsi_headless_init_wsi(struct wsi_device *wsi_device,
+@@ -444,6 +444,14 @@
  void wsi_headless_finish_wsi(struct wsi_device *wsi_device,
                               const VkAllocationCallbacks *alloc);
  
@@ -794,11 +771,9 @@ index 849bdc6..9178e09 100644
                                 VK_OBJECT_TYPE_SWAPCHAIN_KHR)
  
 diff --git a/src/vulkan/wsi/wsi_common_switch.c b/src/vulkan/wsi/wsi_common_switch.c
-new file mode 100644
-index 0000000..3fabf7b
 --- /dev/null
 +++ b/src/vulkan/wsi/wsi_common_switch.c
-@@ -0,0 +1,640 @@
+@@ -0,0 +1,616 @@
 +/*
 + * wsi_common_switch.c — VK_NN_vi_surface WSI backend for the Nintendo Switch,
 + * presenting through libnx `nwindow` (the VI compositor). Mirrors the structure
@@ -964,9 +939,7 @@ index 0000000..3fabf7b
 +   if (surface->window != NULL)
 +      nwindowGetDimensions((NWindow *)surface->window, &w, &h);
 +
-+   caps->minImageCount = 3;  /* Triple-buffer: with 2 buffers (1 in-flight) the acquire
-+                                (nwindowDequeueBuffer) stalls on the 60Hz compositor and snaps
-+                                every frame to 30fps; 3 lets the framerate track the real load. */
++   caps->minImageCount = 2;
 +   caps->maxImageCount = 4;
 +   caps->currentExtent = (VkExtent2D){ w, h };
 +   caps->minImageExtent = (VkExtent2D){ 1, 1 };
@@ -1095,16 +1068,6 @@ index 0000000..3fabf7b
 +};
 +VK_DEFINE_NONDISP_HANDLE_CASTS(wsi_switch_swapchain, base.base, VkSwapchainKHR,
 +                               VK_OBJECT_TYPE_SWAPCHAIN_KHR)
-+
-+/* There is a single NWindow per surface on Switch, and its scanout buffers are registered globally
-+ * via nwindowConfigureBuffer. Track which swapchain currently owns that registration so a swapchain
-+ * recreate (resolution / aspect change -> new extent) can release the previous owner's buffers
-+ * before configuring its own. Without this the second nwindowConfigureBuffer collides with the old
-+ * swapchain's still-registered buffers and returns 0xf59 (HW-confirmed crash on in-game/launcher
-+ * resolution change). Vulkan creates the new swapchain before destroying the old, so the transfer
-+ * happens here at create time; the old swapchain's destroy then sees it is no longer the owner and
-+ * skips its own release (which would otherwise tear down the new buffers). */
-+static struct wsi_switch_swapchain *g_zc_owner = NULL;
 +
 +static struct wsi_image *
 +wsi_switch_swapchain_get_wsi_image(struct wsi_swapchain *wsi_chain, uint32_t image_index)
@@ -1266,10 +1229,8 @@ index 0000000..3fabf7b
 +                             const VkAllocationCallbacks *pAllocator)
 +{
 +   struct wsi_switch_swapchain *chain = (struct wsi_switch_swapchain *)wsi_chain;
-+   if (chain->zero_copy && g_zc_owner == chain) {
++   if (chain->zero_copy)
 +      nwindowReleaseBuffers(chain->window);
-+      g_zc_owner = NULL;
-+   }
 +   if (chain->fb_created)
 +      framebufferClose(&chain->fb);
 +   for (uint32_t i = 0; i < chain->base.image_count; i++) {
@@ -1340,15 +1301,6 @@ index 0000000..3fabf7b
 +    * layout, then nwindowConfigureBuffer). slot == image index (identity). If any
 +    * image can't be wrapped, fall back to the libnx-framebuffer CPU-copy path. */
 +   nvFenceInit();   /* required before nwindowDequeueBuffer / nvMultiFenceWait */
-+   /* Recreate (e.g. resolution/aspect change): a previous swapchain may still own the nwindow's
-+    * registered buffers. Release them and relinquish ownership now so our nwindowConfigureBuffer
-+    * below doesn't collide (0xf59). The old swapchain's destroy will skip its release (no longer
-+    * the owner). */
-+   if (g_zc_owner != NULL && g_zc_owner != chain) {
-+      nwindowReleaseBuffers(chain->window);
-+      g_zc_owner->zero_copy = false;
-+      g_zc_owner = NULL;
-+   }
 +   nwindowSetDimensions(chain->window, chain->extent.width, chain->extent.height);
 +   chain->zero_copy = true;
 +   for (uint32_t i = 0; i < num_images; i++) {
@@ -1365,7 +1317,6 @@ index 0000000..3fabf7b
 +   }
 +
 +   if (chain->zero_copy) {
-+      g_zc_owner = chain;   /* this swapchain now owns the nwindow's registered buffers */
 +      printf("[wsi-zc] zero-copy ENABLED (block-linear scanout, kind=0xfe)\n"); fflush(stdout);
 +      dusk_switch_log("[wsi] zero-copy ENABLED (block-linear nwindow scanout, kind=0xfe)\n");
 +   } else {
@@ -1471,7 +1422,7 @@ diff --git a/src/nouveau/vulkan/nvk_cmd_buffer.c b/src/nouveau/vulkan/nvk_cmd_bu
 +      if (value != NULL) {
 +         char *end = NULL;
 +         unsigned long parsed = strtoul(value, &end, 10);
-+         if (end != value && *end == '\0' && parsed <= 3)
++         if (end != value && *end == '\0' && parsed <= 64)
 +            nvk_root_trace.limit = parsed;
 +      }
 +#endif
@@ -1613,10 +1564,9 @@ diff --git a/src/nouveau/vulkan/nvk_cmd_buffer.h b/src/nouveau/vulkan/nvk_cmd_bu
                         VK_OBJECT_TYPE_COMMAND_BUFFER)
  
 diff --git a/src/nouveau/vulkan/nvk_cmd_dispatch.c b/src/nouveau/vulkan/nvk_cmd_dispatch.c
-index 7a88fc7..1b9e8e7 100644
 --- a/src/nouveau/vulkan/nvk_cmd_dispatch.c
 +++ b/src/nouveau/vulkan/nvk_cmd_dispatch.c
-@@ -24,6 +24,78 @@
+@@ -24,6 +24,102 @@
  #include "nv_push_clc597.h"
  #include "nv_push_clc6c0.h"
  
@@ -1640,12 +1590,22 @@ index 7a88fc7..1b9e8e7 100644
 +   bool initialized;
 +   bool identity_enabled;
 +   bool cache_enabled;
++   bool address_control_enabled;
++   bool address_fresh_enabled;
 +   const struct nvk_cmd_buffer *cmd;
++   uint8_t first_qmd[256];
 +   uint8_t previous_qmd[256];
++   uint64_t previous_root_addr;
 +   uint64_t previous_hash;
 +   uint64_t previous_addr;
 +   uint32_t previous_record;
++   uint32_t exact_copy_count;
++   uint32_t first_equal_count;
++   uint32_t previous_equal_count;
++   uint32_t fresh_transition_count;
++   uint32_t dispatch_match_count;
 +   bool previous_valid;
++   bool first_valid;
 +} nvk_qmd_upload_diag;
 +
 +static void
@@ -1658,10 +1618,24 @@ index 7a88fc7..1b9e8e7 100644
 +#ifdef __SWITCH__
 +   const char *identity = getenv("NVK_QMD_UPLOAD_IDENTITY");
 +   const char *cache = getenv("NVK_QMD_UPLOAD_CACHE_FLUSH");
++   const char *address_control = getenv("NVK_QMD_ADDRESS_CONTROL");
++   const char *address_fresh = getenv("NVK_QMD_ADDRESS_FRESH");
 +   nvk_qmd_upload_diag.identity_enabled =
 +      identity != NULL && strcmp(identity, "1") == 0;
 +   nvk_qmd_upload_diag.cache_enabled =
 +      cache != NULL && strcmp(cache, "1") == 0;
++   const bool control_requested =
++      address_control != NULL && strcmp(address_control, "1") == 0;
++   const bool fresh_requested =
++      address_fresh != NULL && strcmp(address_fresh, "1") == 0;
++   const char *root_cache = getenv("NVK_ROOT_UPLOAD_CACHE_FLUSH");
++   const bool cache_selector_active =
++      nvk_qmd_upload_diag.cache_enabled ||
++      (root_cache != NULL && strcmp(root_cache, "1") == 0);
++   nvk_qmd_upload_diag.address_control_enabled =
++      control_requested && !fresh_requested && !cache_selector_active;
++   nvk_qmd_upload_diag.address_fresh_enabled =
++      fresh_requested && !control_requested && !cache_selector_active;
 +#endif
 +}
 +
@@ -1695,7 +1669,7 @@ index 7a88fc7..1b9e8e7 100644
  VkResult
  nvk_push_dispatch_state_init(struct nvk_queue *queue, struct nv_push *p)
  {
-@@ -100,6 +172,22 @@ nvk_compute_local_size(struct nvk_cmd_buffer *cmd)
+@@ -100,6 +196,22 @@
            shader->info.cs.local_size[2];
  }
  
@@ -1718,7 +1692,7 @@ index 7a88fc7..1b9e8e7 100644
  static void
  nvk_flush_compute_state(struct nvk_cmd_buffer *cmd,
                          uint32_t base_workgroup[3],
-@@ -143,8 +231,92 @@ nvk_cmd_upload_qmd(struct nvk_cmd_buffer *cmd,
+@@ -143,8 +255,93 @@
     if (unlikely(result != VK_SUCCESS))
        return result;
  
@@ -1729,6 +1703,7 @@ index 7a88fc7..1b9e8e7 100644
 +   const bool trace_this =
 +      nvk_root_trace_get_record(cmd, &trace) &&
 +      direct_compute_root;
++   const bool detailed_trace = trace_this && trace.record <= 2;
 +   uint32_t source_seed = 0, mapped_seed = 0;
 +   bool source_ok = false, mapped_ok = false;
 +   if (trace_this && trace.push_offset <= NVK_MAX_PUSH_SIZE &&
@@ -1790,7 +1765,7 @@ index 7a88fc7..1b9e8e7 100644
 +      nvk_root_upload_cache_flush.previous_root_desc_addr = root_desc_addr;
 +   }
 +
-+   if (trace_this) {
++   if (detailed_trace) {
 +      char source_text[32], mapped_text[32];
 +      if (source_ok)
 +         snprintf(source_text, sizeof(source_text), "%u", source_seed);
@@ -1811,7 +1786,7 @@ index 7a88fc7..1b9e8e7 100644
     uint64_t qmd_addr = 0;
     if (shader != NULL) {
        struct nak_qmd_info qmd_info = {
-@@ -158,12 +330,14 @@ nvk_cmd_upload_qmd(struct nvk_cmd_buffer *cmd,
+@@ -158,12 +355,14 @@
           },
        };
  
@@ -1826,12 +1801,12 @@ index 7a88fc7..1b9e8e7 100644
              ba = (struct nvk_buffer_address) {
                 .base_addr = root_desc_addr,
                 .size = sizeof(*root),
-@@ -190,15 +364,138 @@ nvk_cmd_upload_qmd(struct nvk_cmd_buffer *cmd,
+@@ -190,15 +389,211 @@
        uint32_t qmd[64];
        nak_fill_qmd(&pdev->info, &shader->info, &qmd_info, qmd, sizeof(qmd));
  
 -      result = nvk_cmd_buffer_upload_data(cmd, qmd, sizeof(qmd), 0x100, &qmd_addr);
-+      if (trace_this && root_cbuf_index != UINT32_MAX) {
++      if (detailed_trace && root_cbuf_index != UINT32_MAX) {
 +         const struct nak_qmd_cbuf_desc_layout layout =
 +            nak_get_qmd_cbuf_desc_layout(&pdev->info, root_cbuf_index);
 +         uint32_t addr_lo = 0, addr_hi = 0;
@@ -1859,25 +1834,56 @@ index 7a88fc7..1b9e8e7 100644
 +            root_desc_addr, sizeof(*root),
 +            lo_ok && hi_ok && raw_bounds_ok && decoded == root_desc_addr,
 +            lo_ok && hi_ok && raw_bounds_ok);
-+      } else if (trace_this) {
++      } else if (detailed_trace) {
 +         nvk_root_trace_log(
 +            "FG2_ROOT_DIAG phase=qmd record=%u cmd=%p root_cbuf_index=UNAVAILABLE decode_ok=0",
 +            trace.record, (void *)cmd);
 +      }
 +
-+      void *qmd_map = NULL;
++      nvk_qmd_upload_diag_init();
++      const bool address_experiment = trace_this &&
++         (nvk_qmd_upload_diag.address_control_enabled ||
++          nvk_qmd_upload_diag.address_fresh_enabled);
++      void *primary_map = NULL;
++      uint64_t primary_addr = 0;
 +      result = nvk_cmd_buffer_upload_alloc(cmd, sizeof(qmd), 0x100,
-+                                           &qmd_addr, &qmd_map);
++                                           &primary_addr, &primary_map);
        if (unlikely(result != VK_SUCCESS))
           return result;
++      void *secondary_map = NULL;
++      uint64_t secondary_addr = 0;
++      if (address_experiment) {
++         result = nvk_cmd_buffer_upload_alloc(cmd, sizeof(qmd), 0x100,
++                                              &secondary_addr, &secondary_map);
++         if (unlikely(result != VK_SUCCESS))
++            return result;
++      }
++
++      const bool slot_valid = !address_experiment ||
++         (primary_map != NULL && secondary_map != NULL &&
++          (primary_addr & 0xff) == 0 && (secondary_addr & 0xff) == 0 &&
++          primary_addr != secondary_addr);
++      const bool select_secondary = address_experiment &&
++         nvk_qmd_upload_diag.address_fresh_enabled &&
++         (trace.record % 2) == 0;
++      void *qmd_map = select_secondary ? secondary_map : primary_map;
++      qmd_addr = select_secondary ? secondary_addr : primary_addr;
++      if (unlikely(!slot_valid || qmd_map == NULL))
++         return VK_ERROR_UNKNOWN;
 +      memcpy(qmd_map, qmd, sizeof(qmd));
 +
-+      nvk_qmd_upload_diag_init();
-+      if (trace_this && nvk_qmd_upload_diag.identity_enabled) {
++      if (trace_this && (nvk_qmd_upload_diag.identity_enabled ||
++                         address_experiment)) {
 +         if (nvk_qmd_upload_diag.cmd != cmd) {
 +            nvk_qmd_upload_diag.cmd = cmd;
 +            nvk_qmd_upload_diag.previous_valid = false;
++            nvk_qmd_upload_diag.first_valid = false;
 +            nvk_qmd_upload_diag.previous_record = 0;
++            nvk_qmd_upload_diag.exact_copy_count = 0;
++            nvk_qmd_upload_diag.first_equal_count = 0;
++            nvk_qmd_upload_diag.previous_equal_count = 0;
++            nvk_qmd_upload_diag.fresh_transition_count = 0;
++            nvk_qmd_upload_diag.dispatch_match_count = 0;
 +         }
 +
 +         const uint64_t source_hash = nvk_qmd_fnv1a64(qmd, sizeof(qmd));
@@ -1893,6 +1899,17 @@ index 7a88fc7..1b9e8e7 100644
 +         const bool address_reused = has_prior && previous_addr == qmd_addr;
 +         const bool payload_equal = has_prior &&
 +            memcmp(nvk_qmd_upload_diag.previous_qmd, qmd, sizeof(qmd)) == 0;
++         const bool first_equal = nvk_qmd_upload_diag.first_valid &&
++            memcmp(nvk_qmd_upload_diag.first_qmd, qmd, sizeof(qmd)) == 0;
++         const bool address_fresh = has_prior && previous_addr != qmd_addr;
++         if (source_map_match)
++            nvk_qmd_upload_diag.exact_copy_count++;
++         if (first_equal)
++            nvk_qmd_upload_diag.first_equal_count++;
++         if (payload_equal)
++            nvk_qmd_upload_diag.previous_equal_count++;
++         if (address_fresh)
++            nvk_qmd_upload_diag.fresh_transition_count++;
 +         const char *eligibility;
 +         const char *cache_action = "disabled";
 +
@@ -1930,20 +1947,51 @@ index 7a88fc7..1b9e8e7 100644
 +            }
 +         }
 +
-+         nvk_root_trace_log(
-+            "FG2_QMD_DIAG phase=qmd_upload record=%u cmd=%p selector_identity=%u selector_cache=%u qmd_source_hash=0x%016" PRIx64 " qmd_mapped_hash=0x%016" PRIx64 " source_map_match=%u previous_payload_hash=0x%016" PRIx64 " payload_equal=%u qmd_map=%p qmd_size=%zu previous_qmd_gpu_va=0x%016" PRIx64 " qmd_gpu_va=0x%016" PRIx64 " qmd_reuse=%u eligibility=%s cache_action=%s requested_range=%zu root_gpu_va=0x%016" PRIx64 " ordering=after_copy_before_dispatch order_match=%u cpu_mapping_backing_gpu_va=1 artificial_qmd_change=0 gpu_visible=UNPROVEN",
-+            trace.record, (void *)cmd,
-+            nvk_qmd_upload_diag.identity_enabled,
-+            nvk_qmd_upload_diag.cache_enabled,
-+            source_hash, mapped_hash, source_map_match,
-+            previous_hash, payload_equal, qmd_map, sizeof(qmd),
-+            previous_addr, qmd_addr, address_reused, eligibility,
-+            cache_action,
-+            strcmp(cache_action, "invoked") == 0 ? sizeof(qmd) : 0,
-+            root_desc_addr, order_match);
++         if (detailed_trace)
++            nvk_root_trace_log(
++               "FG2_QMD_DIAG phase=qmd_upload record=%u cmd=%p selector_identity=%u selector_cache=%u qmd_source_hash=0x%016" PRIx64 " qmd_mapped_hash=0x%016" PRIx64 " source_map_match=%u previous_payload_hash=0x%016" PRIx64 " payload_equal=%u qmd_map=%p qmd_size=%zu previous_qmd_gpu_va=0x%016" PRIx64 " qmd_gpu_va=0x%016" PRIx64 " qmd_reuse=%u eligibility=%s cache_action=%s requested_range=%zu root_gpu_va=0x%016" PRIx64 " ordering=after_copy_before_dispatch order_match=%u cpu_mapping_backing_gpu_va=1 artificial_qmd_change=0 gpu_visible=UNPROVEN",
++               trace.record, (void *)cmd,
++               nvk_qmd_upload_diag.identity_enabled,
++               nvk_qmd_upload_diag.cache_enabled,
++               source_hash, mapped_hash, source_map_match,
++               previous_hash, payload_equal, qmd_map, sizeof(qmd),
++               previous_addr, qmd_addr, address_reused, eligibility,
++               cache_action,
++               strcmp(cache_action, "invoked") == 0 ? sizeof(qmd) : 0,
++               root_desc_addr, order_match);
++
++         if (address_experiment) {
++            nvk_root_trace_log(
++               "FG2_QMD_ADDRESS phase=correlation path=%s record=%u iteration=%u seed=%u selector_control=%u selector_fresh=%u root_source_seed=%u root_mapped_seed=%u root_gpu_va=0x%016" PRIx64 " previous_root_gpu_va=0x%016" PRIx64 " root_reuse=%u qmd_source_hash=0x%016" PRIx64 " qmd_mapped_hash=0x%016" PRIx64 " source_map_match=%u first_equal=%u previous_equal=%u primary_qmd_gpu_va=0x%016" PRIx64 " secondary_qmd_gpu_va=0x%016" PRIx64 " selected_qmd_gpu_va=0x%016" PRIx64 " previous_qmd_gpu_va=0x%016" PRIx64 " fresh=%u slot_valid=%u order_match=%u addresses_may_recur_after_one_dispatch=1",
++               nvk_qmd_upload_diag.address_fresh_enabled ? "fresh" : "control",
++               trace.record, trace.record, source_seed,
++               nvk_qmd_upload_diag.address_control_enabled,
++               nvk_qmd_upload_diag.address_fresh_enabled, source_seed,
++               mapped_seed, root_desc_addr,
++               nvk_qmd_upload_diag.previous_root_addr,
++               has_prior && nvk_qmd_upload_diag.previous_root_addr == root_desc_addr,
++               source_hash, mapped_hash, source_map_match, first_equal,
++               payload_equal, primary_addr, secondary_addr, qmd_addr,
++               previous_addr, address_fresh, slot_valid, order_match);
++            if (trace.record == 1) {
++               const uint32_t *mapped = qmd_map;
++               for (uint32_t i = 0; i < 64; i += 8)
++                  nvk_root_trace_log(
++                     "FG2_QMD_ADDRESS phase=payload record=1 dword=%u source=%08x,%08x,%08x,%08x,%08x,%08x,%08x,%08x mapped=%08x,%08x,%08x,%08x,%08x,%08x,%08x,%08x",
++                     i, qmd[i], qmd[i + 1], qmd[i + 2], qmd[i + 3],
++                     qmd[i + 4], qmd[i + 5], qmd[i + 6], qmd[i + 7],
++                     mapped[i], mapped[i + 1], mapped[i + 2], mapped[i + 3],
++                     mapped[i + 4], mapped[i + 5], mapped[i + 6], mapped[i + 7]);
++            }
++         }
 +
 +         if (source_map_match && order_match) {
++            if (!nvk_qmd_upload_diag.first_valid) {
++               memcpy(nvk_qmd_upload_diag.first_qmd, qmd, sizeof(qmd));
++               nvk_qmd_upload_diag.first_valid = true;
++            }
 +            memcpy(nvk_qmd_upload_diag.previous_qmd, qmd, sizeof(qmd));
++            nvk_qmd_upload_diag.previous_root_addr = root_desc_addr;
 +            nvk_qmd_upload_diag.previous_hash = source_hash;
 +            nvk_qmd_upload_diag.previous_addr = qmd_addr;
 +            nvk_qmd_upload_diag.previous_record = trace.record;
@@ -1958,7 +2006,7 @@ index 7a88fc7..1b9e8e7 100644
     if (root_desc_addr_out != NULL)
        *root_desc_addr_out = root_desc_addr;
  
-+   if (trace_this)
++   if (detailed_trace)
 +      nvk_root_trace_log(
 +         "FG2_ROOT_DIAG phase=qmd_upload record=%u cmd=%p qmd_gpu_va=0x%016" PRIx64 " root_gpu_va=0x%016" PRIx64,
 +         trace.record, (void *)cmd, qmd_addr, root_desc_addr);
@@ -1966,12 +2014,13 @@ index 7a88fc7..1b9e8e7 100644
     return VK_SUCCESS;
  }
  
-@@ -257,11 +554,16 @@ nvk_CmdDispatchBase(VkCommandBuffer commandBuffer,
+@@ -257,11 +652,17 @@
  
     uint32_t base_workgroup[3] = { baseGroupX, baseGroupY, baseGroupZ };
     uint32_t global_size[3] = { groupCountX, groupCountY, groupCountZ };
 +   struct nvk_root_trace_record trace = {0};
 +   const bool trace_this = nvk_root_trace_get_record(cmd, &trace);
++   const bool detailed_trace = trace_this && trace.record <= 2;
 +   static uint32_t dispatch_count;
 +   if (trace_this)
 +      dispatch_count++;
@@ -1985,15 +2034,41 @@ index 7a88fc7..1b9e8e7 100644
     if (result != VK_SUCCESS) {
        vk_command_buffer_set_error(&cmd->vk, result);
        return;
-@@ -281,6 +583,12 @@ nvk_CmdDispatchBase(VkCommandBuffer commandBuffer,
+@@ -281,6 +682,38 @@
     P_MTHD(p, NVA0C0, SEND_PCAS_A);
     P_NVA0C0_SEND_PCAS_A(p, qmd_addr >> 8);
  
-+   if (trace_this)
-+      nvk_root_trace_log(
-+         "FG2_ROOT_DIAG phase=dispatch record=%u cmd=%p order_match=%u qmd_gpu_va=0x%016" PRIx64 " pcas=0x%08" PRIx64 " root_gpu_va=0x%016" PRIx64,
-+         trace.record, (void *)cmd, dispatch_count == trace.record,
-+         qmd_addr, qmd_addr >> 8, root_desc_addr);
++   if (trace_this) {
++      const uint32_t pcas = qmd_addr >> 8;
++      const uint64_t dispatch_addr = (uint64_t)pcas << 8;
++      const bool dispatch_match = dispatch_addr == qmd_addr;
++      if ((nvk_qmd_upload_diag.address_control_enabled ||
++           nvk_qmd_upload_diag.address_fresh_enabled) && dispatch_match)
++         nvk_qmd_upload_diag.dispatch_match_count++;
++      if (detailed_trace)
++         nvk_root_trace_log(
++            "FG2_ROOT_DIAG phase=dispatch record=%u cmd=%p order_match=%u qmd_gpu_va=0x%016" PRIx64 " pcas=0x%08" PRIx64 " root_gpu_va=0x%016" PRIx64,
++            trace.record, (void *)cmd, dispatch_count == trace.record,
++            qmd_addr, qmd_addr >> 8, root_desc_addr);
++      if (nvk_qmd_upload_diag.address_control_enabled ||
++          nvk_qmd_upload_diag.address_fresh_enabled) {
++         nvk_root_trace_log(
++            "FG2_QMD_ADDRESS phase=dispatch path=%s record=%u selected_qmd_gpu_va=0x%016" PRIx64 " pcas=0x%08" PRIx64 " dispatch_qmd_gpu_va=0x%016" PRIx64 " address_match=%u order_match=%u",
++            nvk_qmd_upload_diag.address_fresh_enabled ? "fresh" : "control",
++            trace.record, qmd_addr, (uint64_t)pcas, dispatch_addr,
++            dispatch_match, dispatch_count == trace.record);
++         if (trace.record == 64)
++            nvk_root_trace_log(
++               "FG2_QMD_ADDRESS phase=aggregate path=%s records=64 exact_copies=%u/64 first_equal=%u/63 previous_equal=%u/63 fresh_transitions=%u/63 dispatch_matches=%u/64 slot_valid=1 ordering_complete=%u fault_state=NO_DRIVER_FAULT_REPORTED",
++               nvk_qmd_upload_diag.address_fresh_enabled ? "fresh" : "control",
++               nvk_qmd_upload_diag.exact_copy_count,
++               nvk_qmd_upload_diag.first_equal_count,
++               nvk_qmd_upload_diag.previous_equal_count,
++               nvk_qmd_upload_diag.fresh_transition_count,
++               nvk_qmd_upload_diag.dispatch_match_count,
++               dispatch_count == trace.record);
++      }
++   }
 +
     if (nvk_cmd_buffer_compute_cls(cmd) <= TURING_COMPUTE_A) {
        P_IMMD(p, NVA0C0, SEND_SIGNALING_PCAS_B, {
