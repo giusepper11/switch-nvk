@@ -8,9 +8,9 @@ establish QMD identity, address reuse, CPU/GPU visibility, or cache behavior on 
 
 ## Source and frozen baseline
 
-- Working source base: `b07b62c7bf868716d6db5af067a5f2e4bcd85817`; hardware execution is
-  forbidden until the exact experiment source is committed and the artifacts are rebuilt from that
-  immutable revision.
+- Immutable experiment source commit: `6828d6e23d5562801dbc0f6e1060e0b0b9b2c7a0` (base commit
+  `b07b62c7bf868716d6db5af067a5f2e4bcd85817`). Both recorded artifacts were rebuilt from this exact
+  revision after the commit and reproduced the hashes below.
 - Upstream input: Mesa 25.0.7 from `https://archive.mesa3d.org/mesa-25.0.7.tar.xz`.
 - Durable Mesa source: `patches/switch-nvk-mesa-25.0.7.patch`; extracted build tree:
   `mesa-25/`; intentionally tracked consumer source: `winsys/smoke/nvk_render_compute.c`; generated
@@ -87,7 +87,6 @@ dispatch, submission/wait behavior, readback, oracle, and iteration count are th
 
 ## Remaining gate
 
-All hardware-dependent claims remain `IMPLEMENTED_UNPROVEN`. Before any device run, commit the exact
-source and rebuild/re-hash both artifacts from that revision. Then run and inspect the complete
-identity control first. An identical reused payload forbids the enabled run; only a valid, naturally
-changed reused payload authorizes it. FG-2 remains `BLOCKED` regardless of host success.
+All hardware-dependent claims remain `IMPLEMENTED_UNPROVEN`. Run and inspect the complete identity
+control first. An identical reused payload forbids the enabled run; only a valid, naturally changed
+reused payload authorizes it. FG-2 remains `BLOCKED` regardless of host success.

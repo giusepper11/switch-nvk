@@ -29,7 +29,7 @@
 
 ## 5. Run the gated real-Tegra experiment
 
-- [ ] 5.1 Commit the exact experiment source and confirm the recorded artifacts were built from that immutable revision before hardware execution.
+- [x] 5.1 Commit the exact experiment source and confirm the recorded artifacts were built from that immutable revision before hardware execution.
 - [ ] 5.2 Run the disabled identity control for all 64 iterations on real Switch/Tegra hardware, retain and inspect the complete unfiltered stream, and require the exact established baseline signature, source/map equality, address/dispatch correlation, and clean recorded fault state.
 - [ ] 5.3 From the valid control, classify QMD payload identity and enforce the decision gate: if the reused payload is identical, do not run the enabled artifact; if it differs naturally and every prerequisite is valid, authorize the enabled run; otherwise classify the result inconclusive and stop.
 - [ ] 5.4 Only when authorized by task 5.3, run the enabled artifact for the unchanged 64 iterations on the same hardware/configuration, confirm the QMD-only invocation and exact requested range before correlated dispatch, and retain the complete unfiltered stream and exact per-iteration results.
