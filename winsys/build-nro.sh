@@ -23,9 +23,14 @@ OUTPUT="${OUTPUT:-$APP}"
 TITLE="${TITLE:-NVK Smoke}"
 VERSION="${VERSION:-0.32.0-fencecmdlist}"
 ROOT_DIAG_LIMIT="${ROOT_DIAG_LIMIT:-0}"
+ROOT_UPLOAD_CACHE_FLUSH="${ROOT_UPLOAD_CACHE_FLUSH:-0}"
 case "$ROOT_DIAG_LIMIT" in
   0|1|2|3) ;;
   *) echo "ROOT_DIAG_LIMIT must be 0, 1, 2, or 3" >&2; exit 2 ;;
+esac
+case "$ROOT_UPLOAD_CACHE_FLUSH" in
+  0|1) ;;
+  *) echo "ROOT_UPLOAD_CACHE_FLUSH must be 0 or 1" >&2; exit 2 ;;
 esac
 echo "=== building app=$APP -> /work/$OUTPUT.nro (title='$TITLE' ver=$VERSION) ==="
 
@@ -34,7 +39,7 @@ INC="-I$DKP/libnx/include -I/opt/switch-cross-include -Imesa-25/include -Imesa-2
 DEFS="-D__SWITCH__ -D_GNU_SOURCE -D_DEFAULT_SOURCE -include /work/compat/switch_compat.h"
 
 echo "=== compiling app + shims ==="
-$GCC -c "winsys/smoke/$APP.c"     -o "$OBJ/$APP.o"           $ARCH -D__SWITCH__ -D_GNU_SOURCE -DFG2_ROOT_DIAG_LIMIT="$ROOT_DIAG_LIMIT" -Imesa-25/include -I$DKP/libnx/include -O2 -Wall
+$GCC -c "winsys/smoke/$APP.c"     -o "$OBJ/$APP.o"           $ARCH -D__SWITCH__ -D_GNU_SOURCE -DFG2_ROOT_DIAG_LIMIT="$ROOT_DIAG_LIMIT" -DFG2_ROOT_UPLOAD_CACHE_FLUSH="$ROOT_UPLOAD_CACHE_FLUSH" -Imesa-25/include -I$DKP/libnx/include -O2 -Wall
 $GCC -c winsys/drm_shim.c         -o "$OBJ/drm_shim.o"       $ARCH $DEFS $INC -O2 ${DRM_SHIM_DEBUG:+-DDRM_SHIM_DEBUG}
 $GCC -c winsys/switch_libc_shim.c -o "$OBJ/switch_libc_shim.o" $ARCH $DEFS $INC -O2
 $GCC -c compat/compat.c           -o "$OBJ/compat.o"         $ARCH $DEFS $INC -O2

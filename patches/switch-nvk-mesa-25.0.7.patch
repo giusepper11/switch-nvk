@@ -1615,16 +1615,45 @@ diff --git a/src/nouveau/vulkan/nvk_cmd_buffer.h b/src/nouveau/vulkan/nvk_cmd_bu
 diff --git a/src/nouveau/vulkan/nvk_cmd_dispatch.c b/src/nouveau/vulkan/nvk_cmd_dispatch.c
 --- a/src/nouveau/vulkan/nvk_cmd_dispatch.c
 +++ b/src/nouveau/vulkan/nvk_cmd_dispatch.c
-@@ -24,6 +24,8 @@
+@@ -24,6 +24,37 @@
  #include "nv_push_clc597.h"
  #include "nv_push_clc6c0.h"
  
 +#include <inttypes.h>
++#include <stdlib.h>
++#include <string.h>
++
++#ifdef __SWITCH__
++#include <switch/arm/cache.h>
++#endif
++
++static struct {
++   bool initialized;
++   bool enabled;
++   const struct nvk_cmd_buffer *cmd;
++   uint64_t previous_root_desc_addr;
++   uint32_t upload_record;
++} nvk_root_upload_cache_flush;
++
++static bool
++nvk_root_upload_cache_flush_enabled(void)
++{
++   if (!nvk_root_upload_cache_flush.initialized) {
++      nvk_root_upload_cache_flush.initialized = true;
++#ifdef __SWITCH__
++      const char *value = getenv("NVK_ROOT_UPLOAD_CACHE_FLUSH");
++      nvk_root_upload_cache_flush.enabled =
++         value != NULL && strcmp(value, "1") == 0;
++#endif
++   }
++
++   return nvk_root_upload_cache_flush.enabled;
++}
 +
  VkResult
  nvk_push_dispatch_state_init(struct nvk_queue *queue, struct nv_push *p)
  {
-@@ -100,6 +102,22 @@
+@@ -100,6 +131,22 @@
            shader->info.cs.local_size[2];
  }
  
@@ -1647,18 +1676,19 @@ diff --git a/src/nouveau/vulkan/nvk_cmd_dispatch.c b/src/nouveau/vulkan/nvk_cmd_
  static void
  nvk_flush_compute_state(struct nvk_cmd_buffer *cmd,
                          uint32_t base_workgroup[3],
-@@ -143,8 +161,49 @@
+@@ -143,8 +190,92 @@
     if (unlikely(result != VK_SUCCESS))
        return result;
  
++   const bool direct_compute_root =
++      desc == &cmd->state.cs.descriptors &&
++      root == (const void *)desc->root;
 +   struct nvk_root_trace_record trace = {0};
 +   const bool trace_this =
 +      nvk_root_trace_get_record(cmd, &trace) &&
-+      desc == &cmd->state.cs.descriptors &&
-+      root == (const void *)desc->root;
++      direct_compute_root;
 +   uint32_t source_seed = 0, mapped_seed = 0;
 +   bool source_ok = false, mapped_ok = false;
-+   static uint64_t previous_root_desc_addr;
 +   if (trace_this && trace.push_offset <= NVK_MAX_PUSH_SIZE &&
 +       trace.push_size >= sizeof(source_seed) &&
 +       sizeof(source_seed) <= NVK_MAX_PUSH_SIZE - trace.push_offset) {
@@ -1675,6 +1705,49 @@ diff --git a/src/nouveau/vulkan/nvk_cmd_dispatch.c b/src/nouveau/vulkan/nvk_cmd_
 +             sizeof(mapped_seed));
 +      mapped_ok = true;
 +   }
++   const bool cache_flush_enabled = nvk_root_upload_cache_flush_enabled();
++   uint64_t previous_root_desc_addr = 0;
++   const char *reuse = "not_direct_compute_root";
++   const char *cache_action = cache_flush_enabled ? "skipped_not_direct" : "disabled";
++   bool order_match = true;
++   if (direct_compute_root) {
++      if (nvk_root_upload_cache_flush.cmd != cmd) {
++         nvk_root_upload_cache_flush.cmd = cmd;
++         nvk_root_upload_cache_flush.previous_root_desc_addr = 0;
++         nvk_root_upload_cache_flush.upload_record = 0;
++      }
++
++      previous_root_desc_addr =
++         nvk_root_upload_cache_flush.previous_root_desc_addr;
++      nvk_root_upload_cache_flush.upload_record++;
++      order_match = !trace_this ||
++                    trace.record == nvk_root_upload_cache_flush.upload_record;
++
++      if (previous_root_desc_addr == 0) {
++         reuse = "no_prior";
++         cache_action = cache_flush_enabled ? "skipped_no_prior" : "disabled";
++      } else if (previous_root_desc_addr == root_desc_addr) {
++         reuse = "reused";
++         if (!order_match) {
++            cache_action = "skipped_invalid_order";
++         } else if (cache_flush_enabled) {
++#ifdef __SWITCH__
++            armDCacheFlush(root_desc_map, sizeof(*root));
++            cache_action = "invoked";
++#else
++            cache_action = "disabled";
++#endif
++         } else {
++            cache_action = "disabled";
++         }
++      } else {
++         reuse = "fresh_address";
++         cache_action = cache_flush_enabled ? "skipped_fresh_address" : "disabled";
++      }
++
++      nvk_root_upload_cache_flush.previous_root_desc_addr = root_desc_addr;
++   }
++
 +   if (trace_this) {
 +      char source_text[32], mapped_text[32];
 +      if (source_ok)
@@ -1686,18 +1759,17 @@ diff --git a/src/nouveau/vulkan/nvk_cmd_dispatch.c b/src/nouveau/vulkan/nvk_cmd_
 +      else
 +         snprintf(mapped_text, sizeof(mapped_text), "UNAVAILABLE");
 +      nvk_root_trace_log(
-+         "FG2_ROOT_DIAG phase=upload record=%u cmd=%p cs_desc=%p root_src=%p source_seed=%s root_map=%p mapped_seed=%s root_gpu_va=0x%016" PRIx64 " size=%zu alignment=%u reused_vs_previous=%u cpu_mapping_backing_gpu_va=1 gpu_visible=UNPROVEN",
++         "FG2_ROOT_DIAG phase=upload record=%u cmd=%p cs_desc=%p root_src=%p source_seed=%s root_map=%p mapped_seed=%s previous_root_gpu_va=0x%016" PRIx64 " root_gpu_va=0x%016" PRIx64 " size=%zu alignment=%u selector=%u reuse=%s cache_action=%s ordering=after_copy_before_qmd order_match=%u cpu_mapping_backing_gpu_va=1 cache_invocation_only=1 gpu_visible=UNPROVEN",
 +         trace.record, (void *)cmd, (void *)desc, (void *)root,
-+         source_text, root_desc_map, mapped_text, root_desc_addr,
-+         sizeof(*root), min_cbuf_alignment,
-+         previous_root_desc_addr != 0 && previous_root_desc_addr == root_desc_addr);
-+      previous_root_desc_addr = root_desc_addr;
++         source_text, root_desc_map, mapped_text, previous_root_desc_addr,
++         root_desc_addr, sizeof(*root), min_cbuf_alignment,
++         cache_flush_enabled, reuse, cache_action, order_match);
 +   }
 +
     uint64_t qmd_addr = 0;
     if (shader != NULL) {
        struct nak_qmd_info qmd_info = {
-@@ -158,12 +217,14 @@
+@@ -158,12 +289,14 @@
           },
        };
  
@@ -1712,7 +1784,7 @@ diff --git a/src/nouveau/vulkan/nvk_cmd_dispatch.c b/src/nouveau/vulkan/nvk_cmd_
              ba = (struct nvk_buffer_address) {
                 .base_addr = root_desc_addr,
                 .size = sizeof(*root),
-@@ -190,6 +251,40 @@
+@@ -190,6 +323,40 @@
        uint32_t qmd[64];
        nak_fill_qmd(&pdev->info, &shader->info, &qmd_info, qmd, sizeof(qmd));
  
@@ -1753,7 +1825,7 @@ diff --git a/src/nouveau/vulkan/nvk_cmd_dispatch.c b/src/nouveau/vulkan/nvk_cmd_
        result = nvk_cmd_buffer_upload_data(cmd, qmd, sizeof(qmd), 0x100, &qmd_addr);
        if (unlikely(result != VK_SUCCESS))
           return result;
-@@ -199,6 +294,11 @@
+@@ -199,6 +366,11 @@
     if (root_desc_addr_out != NULL)
        *root_desc_addr_out = root_desc_addr;
  
@@ -1765,7 +1837,7 @@ diff --git a/src/nouveau/vulkan/nvk_cmd_dispatch.c b/src/nouveau/vulkan/nvk_cmd_
     return VK_SUCCESS;
  }
  
-@@ -257,11 +357,16 @@
+@@ -257,11 +429,16 @@
  
     uint32_t base_workgroup[3] = { baseGroupX, baseGroupY, baseGroupZ };
     uint32_t global_size[3] = { groupCountX, groupCountY, groupCountZ };
@@ -1784,7 +1856,7 @@ diff --git a/src/nouveau/vulkan/nvk_cmd_dispatch.c b/src/nouveau/vulkan/nvk_cmd_
     if (result != VK_SUCCESS) {
        vk_command_buffer_set_error(&cmd->vk, result);
        return;
-@@ -281,6 +386,12 @@
+@@ -281,6 +458,12 @@
     P_MTHD(p, NVA0C0, SEND_PCAS_A);
     P_NVA0C0_SEND_PCAS_A(p, qmd_addr >> 8);
  

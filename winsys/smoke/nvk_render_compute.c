@@ -44,8 +44,18 @@ extern void (*g_drm_shim_log_sink)(const char *);
 #define FG2_ROOT_DIAG_LIMIT 0u
 #endif
 
-#if FG2_ROOT_DIAG_LIMIT > 0u
-#define FG2_BUILD_TAG "chain2-rootdiag1"
+#ifndef FG2_ROOT_UPLOAD_CACHE_FLUSH
+#define FG2_ROOT_UPLOAD_CACHE_FLUSH 0u
+#endif
+
+#if FG2_ROOT_UPLOAD_CACHE_FLUSH != 0u && FG2_ROOT_UPLOAD_CACHE_FLUSH != 1u
+#error "FG2_ROOT_UPLOAD_CACHE_FLUSH must be 0 or 1"
+#endif
+
+#if FG2_ROOT_UPLOAD_CACHE_FLUSH == 1u
+#define FG2_BUILD_TAG "chain2-rootflush1"
+#elif FG2_ROOT_DIAG_LIMIT > 0u
+#define FG2_BUILD_TAG "chain2-rootdiag1-control"
 #else
 #define FG2_BUILD_TAG "chain2"
 #endif
@@ -194,6 +204,10 @@ int main(void)
    LOG("contract: graphics draw -> image A -> sampled compute -> image B -> readback; %ux%u RGBA8, %u iterations", 
        IMAGE_W, IMAGE_H, ITERATIONS);
    LOG("sentinels: image A=0x5a17c3e1 image B=0xa6d42b7f; seeds=(iteration*37+5)&255");
+   LOG("FG2_ROOT_CACHE experiment=%s selector=%u path=%s",
+       FG2_ROOT_UPLOAD_CACHE_FLUSH ? "reused_compute_root_cpu_flush" : "disabled_control",
+       FG2_ROOT_UPLOAD_CACHE_FLUSH,
+       FG2_ROOT_UPLOAD_CACHE_FLUSH ? "eligible_reused_root_only" : "ordinary_no_root_flush");
 
    g_drm_shim_log_sink = shim_log_sink;
    setenv("NVK_I_WANT_A_BROKEN_VULKAN_DRIVER", "1", 1);
@@ -203,6 +217,8 @@ int main(void)
       char trace_limit[2] = { (char)('0' + FG2_ROOT_DIAG_LIMIT), '\0' };
       setenv("NVK_ROOT_TRACE", trace_limit, 1);
    }
+   if (FG2_ROOT_UPLOAD_CACHE_FLUSH == 1u)
+      setenv("NVK_ROOT_UPLOAD_CACHE_FLUSH", "1", 1);
 
    PFN_vkCreateInstance pCreateInstance =
       (PFN_vkCreateInstance)vk_icdGetInstanceProcAddr(NULL, "vkCreateInstance");
