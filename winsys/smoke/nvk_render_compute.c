@@ -48,11 +48,41 @@ extern void (*g_drm_shim_log_sink)(const char *);
 #define FG2_ROOT_UPLOAD_CACHE_FLUSH 0u
 #endif
 
+#ifndef FG2_QMD_UPLOAD_IDENTITY
+#define FG2_QMD_UPLOAD_IDENTITY 0u
+#endif
+
+#ifndef FG2_QMD_UPLOAD_CACHE_FLUSH
+#define FG2_QMD_UPLOAD_CACHE_FLUSH 0u
+#endif
+
 #if FG2_ROOT_UPLOAD_CACHE_FLUSH != 0u && FG2_ROOT_UPLOAD_CACHE_FLUSH != 1u
 #error "FG2_ROOT_UPLOAD_CACHE_FLUSH must be 0 or 1"
 #endif
 
-#if FG2_ROOT_UPLOAD_CACHE_FLUSH == 1u
+#if FG2_QMD_UPLOAD_IDENTITY != 0u && FG2_QMD_UPLOAD_IDENTITY != 1u
+#error "FG2_QMD_UPLOAD_IDENTITY must be 0 or 1"
+#endif
+
+#if FG2_QMD_UPLOAD_CACHE_FLUSH != 0u && FG2_QMD_UPLOAD_CACHE_FLUSH != 1u
+#error "FG2_QMD_UPLOAD_CACHE_FLUSH must be 0 or 1"
+#endif
+
+#if FG2_QMD_UPLOAD_CACHE_FLUSH == 1u && FG2_QMD_UPLOAD_IDENTITY != 1u
+#error "FG2_QMD_UPLOAD_CACHE_FLUSH requires FG2_QMD_UPLOAD_IDENTITY=1"
+#endif
+
+#if FG2_QMD_UPLOAD_IDENTITY == 1u && FG2_ROOT_DIAG_LIMIT == 0u
+#define FG2_EFFECTIVE_DIAG_LIMIT 2u
+#else
+#define FG2_EFFECTIVE_DIAG_LIMIT FG2_ROOT_DIAG_LIMIT
+#endif
+
+#if FG2_QMD_UPLOAD_CACHE_FLUSH == 1u
+#define FG2_BUILD_TAG "chain2-qmdcache1"
+#elif FG2_QMD_UPLOAD_IDENTITY == 1u
+#define FG2_BUILD_TAG "chain2-qmdidentity1-control"
+#elif FG2_ROOT_UPLOAD_CACHE_FLUSH == 1u
 #define FG2_BUILD_TAG "chain2-rootflush1"
 #elif FG2_ROOT_DIAG_LIMIT > 0u
 #define FG2_BUILD_TAG "chain2-rootdiag1-control"
@@ -208,17 +238,27 @@ int main(void)
        FG2_ROOT_UPLOAD_CACHE_FLUSH ? "reused_compute_root_cpu_flush" : "disabled_control",
        FG2_ROOT_UPLOAD_CACHE_FLUSH,
        FG2_ROOT_UPLOAD_CACHE_FLUSH ? "eligible_reused_root_only" : "ordinary_no_root_flush");
+   LOG("FG2_QMD experiment=%s identity_selector=%u cache_selector=%u path=%s",
+       FG2_QMD_UPLOAD_CACHE_FLUSH ? "eligible_reused_qmd_cpu_flush" :
+       (FG2_QMD_UPLOAD_IDENTITY ? "qmd_identity_control" : "disabled"),
+       FG2_QMD_UPLOAD_IDENTITY, FG2_QMD_UPLOAD_CACHE_FLUSH,
+       FG2_QMD_UPLOAD_CACHE_FLUSH ? "eligible_reused_qmd_only" :
+       (FG2_QMD_UPLOAD_IDENTITY ? "identity_only_no_qmd_flush" : "ordinary"));
 
    g_drm_shim_log_sink = shim_log_sink;
    setenv("NVK_I_WANT_A_BROKEN_VULKAN_DRIVER", "1", 1);
    setenv("MESA_SHADER_CACHE_DISABLE", "1", 1);
    setenv("MESA_LOG_FILE", "sdmc:/nvk_render_compute_mesa.log", 1);
-   if (FG2_ROOT_DIAG_LIMIT > 0u) {
-      char trace_limit[2] = { (char)('0' + FG2_ROOT_DIAG_LIMIT), '\0' };
+   if (FG2_EFFECTIVE_DIAG_LIMIT > 0u) {
+      char trace_limit[2] = { (char)('0' + FG2_EFFECTIVE_DIAG_LIMIT), '\0' };
       setenv("NVK_ROOT_TRACE", trace_limit, 1);
    }
    if (FG2_ROOT_UPLOAD_CACHE_FLUSH == 1u)
       setenv("NVK_ROOT_UPLOAD_CACHE_FLUSH", "1", 1);
+   if (FG2_QMD_UPLOAD_IDENTITY == 1u)
+      setenv("NVK_QMD_UPLOAD_IDENTITY", "1", 1);
+   if (FG2_QMD_UPLOAD_CACHE_FLUSH == 1u)
+      setenv("NVK_QMD_UPLOAD_CACHE_FLUSH", "1", 1);
 
    PFN_vkCreateInstance pCreateInstance =
       (PFN_vkCreateInstance)vk_icdGetInstanceProcAddr(NULL, "vkCreateInstance");
@@ -578,7 +618,7 @@ int main(void)
          .renderArea = { { 0, 0 }, { IMAGE_W, IMAGE_H } } };
       pCmdBeginRenderPass(cmd, &rp_begin, VK_SUBPASS_CONTENTS_INLINE);
       pCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, graphics_pipeline);
-      if (iteration < FG2_ROOT_DIAG_LIMIT)
+      if (iteration < FG2_EFFECTIVE_DIAG_LIMIT)
          LOG("FG2_ROOT_DIAG phase=marker record=%u iteration=%u expected_seed=%u cmd=%p",
              iteration + 1u, iteration + 1u, seed, (void *)cmd);
       pCmdPushConstants(cmd, pipeline_layout,
@@ -640,7 +680,7 @@ int main(void)
       if (r != VK_SUCCESS) { LOG("FAIL iteration %u: wait/readback -> %d", iteration, r); goto done; }
       armDCacheFlush(readback_cpu, IMAGE_BYTES);
 
-      if (iteration < FG2_ROOT_DIAG_LIMIT) {
+      if (iteration < FG2_EFFECTIVE_DIAG_LIMIT) {
          const uint32_t observed_checksum =
             checksum_words(readback_cpu, ELEMENTS);
          const uint32_t behavior_seed =
