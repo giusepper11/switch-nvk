@@ -21,7 +21,7 @@
 
 ## 4. Run the paired real-Tegra experiment
 
-- [ ] 4.1 Commit the exact experiment source revision and confirm both hashed artifacts were built from it before any hardware execution.
+- [x] 4.1 Commit the exact experiment source revision and confirm both hashed artifacts were built from it before any hardware execution.
 - [ ] 4.2 Run the disabled control for all 64 iterations on real Switch/Tegra hardware, retain the complete unfiltered application/driver stream, and require the exact retained stale signature, bounded diagnostic correlation, and clean fault state before interpreting the variant.
 - [ ] 4.3 Run the enabled variant for the unchanged 64 iterations on the same hardware/configuration, confirm iteration 1 skips for `no_prior`, iteration 2 invokes the root-only flush for the reused VA before correlated QMD/dispatch, and retain exact per-iteration outputs and the complete unfiltered stream.
 - [ ] 4.4 Inspect both complete logs before filtering, record commit/artifact hashes, hardware/model, firmware/Atmosphere/libnx context, diagnostic flags, iteration count, expected/observed values, address reuse, requested flush ranges, shader hashes, observer effects, and supported `ERRNOTIF`/`ERRINFO` state according to `docs/testing/HARDWARE_EVIDENCE.md`.

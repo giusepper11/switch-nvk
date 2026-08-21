@@ -7,7 +7,8 @@ This record covers source reconstruction, static review, and cross-build evidenc
 
 ## Source and reconstruction
 
-- Base repository commit before the experiment commit: `6004cdc0c9e2cdd2d6b9718093efbb0eecc0bf10`.
+- Immutable experiment source commit: `c79700438f42b588c6a1a9b7dcff296f8235349e`
+  (base commit `6004cdc0c9e2cdd2d6b9718093efbb0eecc0bf10`).
 - Upstream input: Mesa 25.0.7 archive from `https://archive.mesa3d.org/mesa-25.0.7.tar.xz`.
 - The build-authoritative input is the ignored `mesa-25/` extraction; the durable reproducible input is
   `patches/switch-nvk-mesa-25.0.7.patch`.
@@ -73,6 +74,10 @@ Paired artifacts built from the same working source:
 |---|---:|---|---|
 | `nvk_render_compute_rootflush_control.nro` | `0` | `0.62.0-rootflush-control` | `1656f810a07b52a77e5848da3c549842fa591f0411fb2e495bf4cacc3235a8ba` |
 | `nvk_render_compute_rootflush_enabled.nro` | `1` | `0.62.0-rootflush-enabled` | `5c2302d73c597d996aada097f9a7407d8d35b2af75788db83b4d39c7f882ca39` |
+
+Both artifacts were rebuilt from clean experiment commit
+`c79700438f42b588c6a1a9b7dcff296f8235349e` after it was created, and both SHA256 values reproduced
+exactly before any hardware execution.
 
 The artifact hashes differ as required by their build/version metadata, startup selector/reporting, and
 enabled `setenv` call. Both link the same NVK archive and embed the same generated shaders. Source review
