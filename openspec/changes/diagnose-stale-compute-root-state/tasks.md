@@ -25,13 +25,13 @@
 
 ## 5. Run the observation-only real-hardware experiment
 
-- [ ] 5.1 Run the immutable artifact for the unchanged 64 iterations on real Switch/Tegra hardware with detailed capture limited to iteration 1 (seed 5), iteration 2 (seed 42), and optionally iteration 3; do not substitute an emulator and do not introduce a flush, invalidation, wait, or semantic variant.
-- [ ] 5.2 Retain and inspect the complete application/driver streams before filtering, record missing configured log files, and capture supported `ERRNOTIF`/`ERRINFO` data after any timeout or GPU fault.
-- [ ] 5.3 Record commit, artifact SHA256/version, hardware/model, diagnostic flags, inspected iterations, all root/upload/QMD/dispatch values, exact observed output, address reuse, observer-effect assessment, GPU fault/error state, and raw-log references according to `docs/testing/HARDWARE_EVIDENCE.md`.
+- [x] 5.1 Run the immutable artifact for the unchanged 64 iterations on real Switch/Tegra hardware with detailed capture limited to iteration 1 (seed 5), iteration 2 (seed 42), and optionally iteration 3; do not substitute an emulator and do not introduce a flush, invalidation, wait, or semantic variant.
+- [x] 5.2 Retain and inspect the complete application/driver streams before filtering, record missing configured log files, and capture supported `ERRNOTIF`/`ERRINFO` data after any timeout or GPU fault.
+- [x] 5.3 Record commit, artifact SHA256/version, hardware/model, diagnostic flags, inspected iterations, all root/upload/QMD/dispatch values, exact observed output, address reuse, observer-effect assessment, GPU fault/error state, and raw-log references according to `docs/testing/HARDWARE_EVIDENCE.md`.
 
 ## 6. Correlate the first stale boundary and update research state
 
-- [ ] 6.1 Build the iteration 1 versus iteration 2 table correlating expected seed, graphics CPU root, compute CPU root, upload source, uploaded CPU mapping, upload GPU VA, QMD root VA, dispatched QMD VA, and observed behavior seed; reject the correlation if marker/order/identity checks do not line up.
-- [ ] 6.2 Compare the diagnostic run with both retained FG-2 failure signatures and classify exactly one justified result: first stale boundary identified, unresolved after current CPU/QMD state before GPU consumption, observer effect detected, or specified ambiguous interval; stop without implementing a fix.
-- [ ] 6.3 Add the detailed evidence-backed finding under `docs/research/`, retain the full hardware record/raw logs under `docs/testing/`, keep the shared-layout hypothesis `REJECTED`, and keep FG-2 `BLOCKED` unless the original full render-compute-image-chain acceptance contract independently passes.
-- [ ] 6.4 Update `docs/status/CAPABILITY_MATRIX.md` only if real hardware establishes a durable fact, add an ADR only for a persistent architectural decision, and name one smallest follow-up OpenSpec change targeted solely at the identified or unresolved boundary.
+- [x] 6.1 Build the iteration 1 versus iteration 2 table correlating expected seed, graphics CPU root, compute CPU root, upload source, uploaded CPU mapping, upload GPU VA, QMD root VA, dispatched QMD VA, and observed behavior seed; reject the correlation if marker/order/identity checks do not line up.
+- [x] 6.2 Compare the diagnostic run with both retained FG-2 failure signatures and classify exactly one justified result: first stale boundary identified, unresolved after current CPU/QMD state before GPU consumption, observer effect detected, or specified ambiguous interval; stop without implementing a fix.
+- [x] 6.3 Add the detailed evidence-backed finding under `docs/research/`, retain the full hardware record/raw logs under `docs/testing/`, keep the shared-layout hypothesis `REJECTED`, and keep FG-2 `BLOCKED` unless the original full render-compute-image-chain acceptance contract independently passes.
+- [x] 6.4 Update `docs/status/CAPABILITY_MATRIX.md` only if real hardware establishes a durable fact, add an ADR only for a persistent architectural decision, and name one smallest follow-up OpenSpec change targeted solely at the identified or unresolved boundary.

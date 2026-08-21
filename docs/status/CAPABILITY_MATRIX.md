@@ -18,8 +18,9 @@ Status vocabulary is defined in `PROJECT.md` / `AGENTS.md`.
 | Compute shader dispatch on this Horizon winsys | PROVEN_HW | `winsys/smoke/nvk_compute.c`, immutable-commit FG-1 hardware evidence | retain 64-iteration regression |
 | Storage-buffer compute | PROVEN_HW | `winsys/smoke/nvk_compute.c`, immutable-commit FG-1 hardware evidence | retain 64-iteration regression |
 | Storage-image compute | PROVEN_HW | `winsys/smoke/nvk_compute.c`, immutable-commit FG-1 hardware evidence | retain 64-iteration regression |
+| Compute root upload/QMD diagnostics | PROVEN_HW | `docs/testing/FG2_ROOT_STATE_DIAGNOSTIC_RUN_2026-08-20.md`; current seed proven through CPU root/upload mapping and dispatched QMD encoding | retain observation-only diagnostic; do not infer GPU visibility |
 | Render-to-texture pipeline | IMPLEMENTED_UNPROVEN | expected Vulkan/NVK behavior but no dedicated acceptance test in current baseline | FG-2 |
-| Render → sampled image → compute → storage image chain | BLOCKED | initial and shared-layout failures in `docs/testing/FG2_NVK_RENDER_COMPUTE_FAILURE_2026-08-20.md` and `docs/testing/FG2_NVK_RENDER_COMPUTE_SHARED_LAYOUT_FAILURE_2026-08-20.md`; identical stale compute-seed signature | instrument compute descriptor-root update, root upload/QMD address, and GPU-visible constant-buffer state |
+| Render → sampled image → compute → storage image chain | BLOCKED | initial/shared-layout failures plus `docs/testing/FG2_ROOT_STATE_DIAGNOSTIC_RUN_2026-08-20.md`; current seed reaches CPU upload mapping and dispatched QMD, but output retains the identical stale signature | controlled root-upload cache-visibility experiment; GPU consumption remains unresolved |
 
 ## Graphics feature baseline
 
