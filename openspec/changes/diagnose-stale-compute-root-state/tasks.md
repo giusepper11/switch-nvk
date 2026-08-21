@@ -21,7 +21,7 @@
 
 - [x] 4.1 Update/regenerate the durable Mesa 25.0.7 patch and the extracted build tree (plus only any confirmed intentional mirror), then verify a clean reconstruction applies the patch and contains the exact diagnostics without modifying pristine upstream references.
 - [x] 4.2 Build/package `nvk_render_compute` with a distinct diagnostic build/version tag, run applicable compile/static checks, and verify the disabled trace path and bounded enabled trace format without claiming a hardware boundary.
-- [ ] 4.3 Review the source and built shader artifacts to prove there is no added GPU command, allocation, cache operation, synchronization, command-buffer/root layout change, or shader-byte change; commit the exact diagnostic source revision and record the artifact SHA256 and diagnostic flags.
+- [x] 4.3 Review the source and built shader artifacts to prove there is no added GPU command, allocation, cache operation, synchronization, command-buffer/root layout change, or shader-byte change; commit the exact diagnostic source revision and record the artifact SHA256 and diagnostic flags.
 
 ## 5. Run the observation-only real-hardware experiment
 

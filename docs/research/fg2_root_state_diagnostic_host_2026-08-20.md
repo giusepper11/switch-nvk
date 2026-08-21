@@ -63,7 +63,7 @@ returned GPU VA and labels GPU visibility `UNPROVEN`.
 
 ## Host validation and immutable artifact
 
-- Diagnostic source revision: pending the source commit created by this OpenSpec apply.
+- Diagnostic source revision: `36cf3dd37ae3d25e2e47244472665da458113290`.
 - Build container: `switch-nvk-build:latest` image `4e516b1f3576`.
 - NVK check: `ninja -C mb src/nouveau/vulkan/libnvk.a` passed. Only unrelated pre-existing
   unused-variable warnings were observed in `nvk_cmd_copy.c` and `nvk_cmd_draw.c` during the
@@ -72,6 +72,8 @@ returned GPU VA and labels GPU visibility `UNPROVEN`.
   TITLE="NVK Root Diagnostic" VERSION="0.62.0-rootdiag1" ROOT_DIAG_LIMIT=2`.
 - Artifact: `nvk_render_compute_rootdiag1.nro`.
 - Artifact SHA256: `7e1e12b38eb487a81cd6909e6b351558102708ac2d24e9e4ee13bfac637eeff7`.
+- The enabled artifact was rebuilt after committing the exact source revision; the hash remained
+  the value above.
 - Disabled control build: `ROOT_DIAG_LIMIT=0`, artifact
   `nvk_render_compute_rootdiag_disabled.nro`, SHA256
   `f7fdded7aeca0633a69fde8a278d8b53c8b7855ec258029ea1a24236f0f4cc7c`.
