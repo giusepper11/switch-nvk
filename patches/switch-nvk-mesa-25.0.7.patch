@@ -1,30 +1,16 @@
 --- a/src/c11/impl/threads_posix.c
 +++ b/src/c11/impl/threads_posix.c
-@@ -19,7 +19,8 @@
-     Use pthread_mutex_timedlock() for `mtx_timedlock()'
-     Otherwise use mtx_trylock() + *busy loop* emulation.
- */
+@@ -22 +22,2 @@
 -#if !defined(__CYGWIN__) && !defined(__APPLE__) && !defined(__NetBSD__)
 +/* libnx's pthread has no pthread_mutex_timedlock(); fall back to the trylock+busy-loop emulation. */
 +#if !defined(__CYGWIN__) && !defined(__APPLE__) && !defined(__NetBSD__) && !defined(__SWITCH__)
- #define EMULATED_THREADS_USE_NATIVE_TIMEDLOCK
- #endif
-
 --- a/src/nouveau/compiler/nak.h
 +++ b/src/nouveau/compiler/nak.h
-@@ -226,6 +226,8 @@
-    uint16_t smem_size;
-    uint16_t smem_max;
-
+@@ -228,0 +229,2 @@
 +   bool invalidate_shader_constant_cache;
 +
-    uint32_t global_size[3];
-
-    uint32_t num_cbufs;
-@@ -254,6 +256,14 @@
- struct nak_qmd_cbuf_desc_layout
- nak_get_qmd_cbuf_desc_layout(const struct nv_device_info *dev, uint8_t idx);
-
+@@ -255,0 +258,8 @@
++
 +struct nak_qmd_field_layout {
 +   uint16_t start, end;
 +};
@@ -32,38 +18,17 @@
 +struct nak_qmd_field_layout
 +nak_get_qmd_shader_constant_cache_invalidate_layout(
 +   const struct nv_device_info *dev);
-+
- #ifdef __cplusplus
- }
- #endif
 --- a/src/nouveau/compiler/nak/hw_runner.rs
 +++ b/src/nouveau/compiler/nak/hw_runner.rs
-@@ -317,6 +317,7 @@
-             },
-             smem_size: 0,
-             smem_max: 48 * 1024,
+@@ -319,0 +320 @@
 +            invalidate_shader_constant_cache: false,
-             global_size: [invocations.div_ceil(local_size.into()), 1, 1],
-             num_cbufs: 1,
-             cbufs: qmd_cbufs,
 --- a/src/nouveau/compiler/nak/qmd.rs
 +++ b/src/nouveau/compiler/nak/qmd.rs
-@@ -14,9 +14,11 @@
-
- trait QMD {
-     const GLOBAL_SIZE_LAYOUT: nak_qmd_dispatch_size_layout;
+@@ -16,0 +17 @@
 +    const SHADER_CONSTANT_CACHE_INVALIDATE_LAYOUT: nak_qmd_field_layout;
-
-     fn new() -> Self;
-     fn set_barrier_count(&mut self, barrier_count: u8);
+@@ -19,0 +21 @@
 +    fn set_shader_constant_cache_invalidate(&mut self, invalidate: bool);
-     fn set_cbuf(&mut self, idx: u8, addr: u64, size: u32);
-     fn cbuf_desc_layout(idx: u8) -> nak_qmd_cbuf_desc_layout;
-     fn set_global_size(&mut self, width: u32, height: u32, depth: u32);
-@@ -61,6 +63,25 @@
-
- macro_rules! qmd_impl_common {
-     ($c:ident, $s:ident) => {
+@@ -63,0 +66,19 @@
 +        const SHADER_CONSTANT_CACHE_INVALIDATE_LAYOUT: nak_qmd_field_layout = {
 +            let field = paste! {$c::[<$s _INVALIDATE_SHADER_CONSTANT_CACHE>]};
 +            nak_qmd_field_layout {
@@ -83,13 +48,7 @@
 +            );
 +        }
 +
-         fn set_barrier_count(&mut self, barrier_count: u8) {
-             let mut bv = QMDBitView::new(&mut self.qmd);
-             set_field!(bv, $c, $s, BARRIER_COUNT, barrier_count);
-@@ -225,6 +246,44 @@
-             set_field!(bv, cla0c0, QMDV00_06, L1_CONFIGURATION, l1_config);
-         }
-     }
+@@ -227,0 +249,38 @@
 +
 +    #[cfg(test)]
 +    mod tests {
@@ -128,23 +87,14 @@
 +            }
 +        }
 +    }
- }
- use qmd_0_6::Qmd0_6;
-
-@@ -364,6 +423,9 @@
-
-     let mut qmd = Q::new();
-
+@@ -366,0 +426,3 @@
 +    qmd.set_shader_constant_cache_invalidate(
 +        qmd_info.invalidate_shader_constant_cache,
 +    );
-     qmd.set_barrier_count(info.num_control_barriers);
-     qmd.set_global_size(
-         qmd_info.global_size[0],
-@@ -467,4 +529,21 @@
-     } else {
-         panic!("Unsupported shader model");
-     }
+@@ -466,0 +529,17 @@
++    } else {
++        panic!("Unsupported shader model");
++    }
 +}
 +
 +#[no_mangle]
@@ -159,16 +109,9 @@
 +        Qmd2_1::SHADER_CONSTANT_CACHE_INVALIDATE_LAYOUT
 +    } else if dev.cls_compute >= cla0c0::KEPLER_COMPUTE_A {
 +        Qmd0_6::SHADER_CONSTANT_CACHE_INVALIDATE_LAYOUT
-+    } else {
-+        panic!("Unsupported shader model");
-+    }
- }
 --- a/src/nouveau/vulkan/nvk_cmd_buffer.c
 +++ b/src/nouveau/vulkan/nvk_cmd_buffer.c
-@@ -25,6 +25,88 @@
- #include "nv_push_clb1c0.h"
- #include "nv_push_clc597.h"
-
+@@ -27,0 +28,82 @@
 +#include <stdarg.h>
 +#include <stdlib.h>
 +
@@ -251,13 +194,7 @@
 +   return true;
 +}
 +
- static void
- nvk_descriptor_state_fini(struct nvk_cmd_buffer *cmd,
-                           struct nvk_descriptor_state *desc)
-@@ -905,6 +987,59 @@
-
-    if (pPushConstantsInfo->stageFlags & VK_SHADER_STAGE_COMPUTE_BIT)
-       nvk_push_constants(cmd, &cmd->state.cs.descriptors, pPushConstantsInfo);
+@@ -907,0 +990,53 @@
 +
 +   if (nvk_root_trace_limit() > 0 &&
 +       (pPushConstantsInfo->stageFlags & VK_SHADER_STAGE_COMPUTE_BIT)) {
@@ -311,15 +248,9 @@
 +         nvk_root_trace.current = (struct nvk_root_trace_record) {0};
 +      }
 +   }
- }
-
- static struct nvk_push_descriptor_set *
 --- a/src/nouveau/vulkan/nvk_cmd_buffer.h
 +++ b/src/nouveau/vulkan/nvk_cmd_buffer.h
-@@ -237,6 +237,17 @@
-    uint64_t tls_space_needed;
- };
-
+@@ -239,0 +240,11 @@
 +/* Bounded, observation-only tracing for the FG-2 root-state diagnostic. */
 +struct nvk_root_trace_record {
 +   uint32_t record;
@@ -331,23 +262,12 @@
 +                               struct nvk_root_trace_record *trace);
 +void nvk_root_trace_log(const char *fmt, ...) PRINTFLIKE(1, 2);
 +
- VK_DEFINE_HANDLE_CASTS(nvk_cmd_buffer, vk.base, VkCommandBuffer,
-                        VK_OBJECT_TYPE_COMMAND_BUFFER)
-
 --- a/src/nouveau/vulkan/nvk_cmd_dispatch.c
 +++ b/src/nouveau/vulkan/nvk_cmd_dispatch.c
-@@ -4,6 +4,7 @@
-  */
- #include "nvk_buffer.h"
- #include "nvk_cmd_buffer.h"
+@@ -6,0 +7,2 @@
 +#include "nvk_qmd_constant_cache_validation.h"
- #include "nvk_device.h"
- #include "nvk_entrypoints.h"
- #include "nvk_mme.h"
-@@ -24,6 +25,158 @@
- #include "nv_push_clc597.h"
- #include "nv_push_clc6c0.h"
-
++#include "nvk_root_reuse_distance_validation.h"
+@@ -26,0 +29,217 @@
 +#include <inttypes.h>
 +#include <stdlib.h>
 +#include <string.h>
@@ -364,6 +284,13 @@
 +   uint32_t upload_record;
 +} nvk_root_upload_cache_flush;
 +
++struct nvk_qmd_va_history {
++   uint64_t va;
++   uint32_t last_record;
++   bool seen;
++   bool revisited;
++};
++
 +static struct {
 +   bool initialized;
 +   bool identity_enabled;
@@ -374,6 +301,8 @@
 +   bool root_address_fresh_enabled;
 +   bool constant_cache_control_enabled;
 +   bool constant_cache_invalidate_enabled;
++   bool root_reuse_distance_control_enabled;
++   bool root_reuse_distance_variant_enabled;
 +   bool selector_valid;
 +   const struct nvk_cmd_buffer *cmd;
 +   uint8_t first_qmd[256];
@@ -389,11 +318,17 @@
 +   uint32_t dispatch_match_count;
 +   uint32_t root_exact_copy_count;
 +   uint32_t alternate_root_exact_copy_count;
++   uint32_t third_root_exact_copy_count;
 +   uint32_t root_fresh_transition_count;
 +   uint32_t root_decode_match_count;
 +   uint32_t qmd_outside_mask_match_count;
 +   uint32_t constant_cache_one_bit_match_count;
 +   uint32_t constant_cache_field_match_count;
++   struct nvk_qmd_va_history root_history[3], qmd_history[4];
++   uint32_t root_first_revisit_iteration;
++   uint32_t root_first_revisit_distance;
++   uint32_t qmd_first_revisit_iteration;
++   uint32_t qmd_first_revisit_distance;
 +   bool previous_valid;
 +   bool first_valid;
 +} nvk_qmd_upload_diag;
@@ -416,6 +351,10 @@
 +      getenv("NVK_QMD_SHADER_CONSTANT_CACHE_CONTROL");
 +   const char *constant_cache_invalidate =
 +      getenv("NVK_QMD_SHADER_CONSTANT_CACHE_INVALIDATE");
++   const char *root_reuse_distance_control =
++      getenv("NVK_ROOT_ADDRESS_REUSE_DISTANCE_CONTROL");
++   const char *root_reuse_distance_variant =
++      getenv("NVK_ROOT_ADDRESS_REUSE_DISTANCE_VARIANT");
 +   nvk_qmd_upload_diag.identity_enabled =
 +      identity != NULL && strcmp(identity, "1") == 0;
 +   nvk_qmd_upload_diag.cache_enabled =
@@ -459,7 +398,16 @@
 +      !cache_selector_active && !qmd_selector_active;
 +   const bool historical_selector_active = cache_selector_active ||
 +      qmd_selector_active || root_control_requested || root_fresh_requested;
++   const bool all_historical_selector_active = historical_selector_active ||
++      constant_cache_control_requested || constant_cache_invalidate_requested;
++   bool root_reuse_distance_selector_valid =
++      nvk_root_reuse_distance_selectors_valid(
++         root_reuse_distance_control, root_reuse_distance_variant,
++         all_historical_selector_active,
++         &nvk_qmd_upload_diag.root_reuse_distance_control_enabled,
++         &nvk_qmd_upload_diag.root_reuse_distance_variant_enabled);
 +   nvk_qmd_upload_diag.selector_valid = constant_cache_value_valid &&
++      root_reuse_distance_selector_valid &&
 +      !(constant_cache_control_requested &&
 +        constant_cache_invalidate_requested) &&
 +      !((constant_cache_control_requested ||
@@ -468,6 +416,10 @@
 +      nvk_qmd_upload_diag.selector_valid && constant_cache_control_requested;
 +   nvk_qmd_upload_diag.constant_cache_invalidate_enabled =
 +      nvk_qmd_upload_diag.selector_valid && constant_cache_invalidate_requested;
++   nvk_qmd_upload_diag.root_reuse_distance_control_enabled &=
++      nvk_qmd_upload_diag.selector_valid;
++   nvk_qmd_upload_diag.root_reuse_distance_variant_enabled &=
++      nvk_qmd_upload_diag.selector_valid;
 +#else
 +   nvk_qmd_upload_diag.selector_valid = true;
 +#endif
@@ -486,6 +438,39 @@
 +}
 +
 +static bool
++nvk_qmd_record_va_reuse(struct nvk_qmd_va_history *history,
++                        uint32_t history_count, uint64_t va, uint32_t record,
++                        uint32_t *distance_out, bool *first_revisit_out)
++{
++   *distance_out = 0;
++   *first_revisit_out = false;
++
++   for (uint32_t i = 0; i < history_count; i++) {
++      struct nvk_qmd_va_history *entry = &history[i];
++      if (entry->seen && entry->va == va) {
++         *distance_out = record - entry->last_record;
++         *first_revisit_out = !entry->revisited;
++         entry->revisited = true;
++         entry->last_record = record;
++         return true;
++      }
++   }
++
++   for (uint32_t i = 0; i < history_count; i++) {
++      struct nvk_qmd_va_history *entry = &history[i];
++      if (!entry->seen) {
++         entry->va = va;
++         entry->last_record = record;
++         entry->seen = true;
++         entry->revisited = false;
++         return false;
++      }
++   }
++
++   return false;
++}
++
++static bool
 +nvk_root_upload_cache_flush_enabled(void)
 +{
 +   if (!nvk_root_upload_cache_flush.initialized) {
@@ -500,13 +485,7 @@
 +   return nvk_root_upload_cache_flush.enabled;
 +}
 +
- VkResult
- nvk_push_dispatch_state_init(struct nvk_queue *queue, struct nv_push *p)
- {
-@@ -100,6 +253,22 @@
-           shader->info.cs.local_size[2];
- }
-
+@@ -102,0 +322,16 @@
 +static bool
 +nvk_qmd_extract_bits(const uint32_t qmd[64], uint16_t start, uint16_t end,
 +                     uint32_t *value)
@@ -523,13 +502,7 @@
 +   return true;
 +}
 +
- static void
- nvk_flush_compute_state(struct nvk_cmd_buffer *cmd,
-                         uint32_t base_workgroup[3],
-@@ -143,7 +312,96 @@
-    if (unlikely(result != VK_SUCCESS))
-       return result;
-
+@@ -145,0 +381,17 @@
 +   const bool direct_compute_root =
 +      desc == &cmd->state.cs.descriptors &&
 +      root == (const void *)desc->root;
@@ -547,7 +520,7 @@
 +      source_ok = true;
 +   }
 +
-    memcpy(root_desc_map, root, sizeof(*root));
+@@ -146,0 +399,72 @@
 +   const uint64_t primary_root_addr = root_desc_addr;
 +   void *const primary_root_map = root_desc_map;
 +   struct nvk_cmd_mem *const primary_upload_mem = cmd->upload_mem;
@@ -620,13 +593,7 @@
 +         root_desc_addr, sizeof(*root), min_cbuf_alignment,
 +         cache_flush_enabled, reuse, cache_action, order_match);
 +   }
-
-    uint64_t qmd_addr = 0;
-    if (shader != NULL) {
-@@ -158,12 +416,84 @@
-          },
-       };
-
+@@ -160,0 +485,160 @@
 +      nvk_qmd_upload_diag_init();
 +      if (unlikely(!nvk_qmd_upload_diag.selector_valid))
 +         return VK_ERROR_UNKNOWN;
@@ -650,9 +617,17 @@
 +          (nvk_qmd_upload_diag.root_address_control_enabled ||
 +           nvk_qmd_upload_diag.root_address_fresh_enabled)) ||
 +         constant_cache_experiment;
-+      const bool two_qmd_slots = qmd_address_experiment || root_address_experiment;
++      const bool root_reuse_distance_experiment = trace_this &&
++         (nvk_qmd_upload_diag.root_reuse_distance_control_enabled ||
++          nvk_qmd_upload_diag.root_reuse_distance_variant_enabled);
++      const bool root_slot_experiment =
++         root_address_experiment || root_reuse_distance_experiment;
++      const bool two_qmd_slots =
++         qmd_address_experiment || root_slot_experiment;
 +      void *primary_map = NULL, *secondary_map = NULL;
++      void *third_qmd_map = NULL, *fourth_qmd_map = NULL;
 +      uint64_t primary_addr = 0, secondary_addr = 0;
++      uint64_t third_qmd_addr = 0, fourth_qmd_addr = 0;
 +      result = nvk_cmd_buffer_upload_alloc(cmd, 256, 0x100,
 +                                           &primary_addr, &primary_map);
 +      if (unlikely(result != VK_SUCCESS))
@@ -665,8 +640,10 @@
 +      }
 +
 +      void *alternate_root_map = NULL;
++      void *third_root_map = NULL;
 +      uint64_t alternate_root_addr = 0;
-+      if (root_address_experiment) {
++      uint64_t third_root_addr = 0;
++      if (root_slot_experiment) {
 +         result = nvk_cmd_buffer_upload_alloc(cmd, sizeof(*root),
 +                                              min_cbuf_alignment,
 +                                              &alternate_root_addr,
@@ -674,6 +651,74 @@
 +         if (unlikely(result != VK_SUCCESS))
 +            return result;
 +         memcpy(alternate_root_map, root, sizeof(*root));
++         if (root_reuse_distance_experiment) {
++            result = nvk_cmd_buffer_upload_alloc(cmd, 256, 0x100,
++                                                 &third_qmd_addr,
++                                                 &third_qmd_map);
++            if (unlikely(result != VK_SUCCESS))
++               return result;
++            result = nvk_cmd_buffer_upload_alloc(cmd, 256, 0x100,
++                                                 &fourth_qmd_addr,
++                                                 &fourth_qmd_map);
++            if (unlikely(result != VK_SUCCESS))
++               return result;
++            result = nvk_cmd_buffer_upload_alloc(cmd, sizeof(*root),
++                                                 min_cbuf_alignment,
++                                                 &third_root_addr,
++                                                 &third_root_map);
++            if (unlikely(result != VK_SUCCESS))
++               return result;
++            memcpy(third_root_map, root, sizeof(*root));
++            const uint64_t upload_base =
++               primary_upload_mem->mem->va->addr;
++            const uint64_t root_a_offset = primary_root_addr - upload_base;
++            const uint64_t qmd_x_offset = primary_addr - upload_base;
++            const uint64_t qmd_y_offset = secondary_addr - upload_base;
++            const uint64_t root_b_offset = alternate_root_addr - upload_base;
++            const uint64_t qmd_z_offset = third_qmd_addr - upload_base;
++            const uint64_t qmd_w_offset = fourth_qmd_addr - upload_base;
++            const uint64_t root_c_offset = third_root_addr - upload_base;
++            const bool one_backing =
++               cmd->upload_mem == primary_upload_mem &&
++               primary_root_addr >= upload_base &&
++               primary_addr >= upload_base && secondary_addr >= upload_base &&
++               alternate_root_addr >= upload_base &&
++               third_qmd_addr >= upload_base && fourth_qmd_addr >= upload_base &&
++               third_root_addr >= upload_base;
++            const bool layout_valid = one_backing &&
++               primary_root_end_offset == 0x800 &&
++               root_a_offset == 0 && qmd_x_offset == 0x800 &&
++               qmd_y_offset == 0x900 && root_b_offset == 0xa00 &&
++               qmd_z_offset == 0x1200 && qmd_w_offset == 0x1300 &&
++               root_c_offset == 0x1400 &&
++               cmd->upload_offset == 7168 &&
++               primary_root_addr != alternate_root_addr &&
++               primary_root_addr != third_root_addr &&
++               alternate_root_addr != third_root_addr &&
++               primary_addr != secondary_addr &&
++               primary_addr != third_qmd_addr &&
++               primary_addr != fourth_qmd_addr &&
++               secondary_addr != third_qmd_addr &&
++               secondary_addr != fourth_qmd_addr &&
++               third_qmd_addr != fourth_qmd_addr;
++            if (unlikely(!layout_valid))
++               return VK_ERROR_UNKNOWN;
++            if (trace.record == 1)
++               nvk_root_trace_log(
++                  "FG2_ROOT_REUSE_DISTANCE phase=allocation arm=%s record=1 root_a_map=%p root_a_offset=%" PRIu64 " root_a_va=0x%016" PRIx64 " qmd_x_map=%p qmd_x_offset=%" PRIu64 " qmd_x_va=0x%016" PRIx64 " qmd_y_map=%p qmd_y_offset=%" PRIu64 " qmd_y_va=0x%016" PRIx64 " root_b_map=%p root_b_offset=%" PRIu64 " root_b_va=0x%016" PRIx64 " qmd_z_map=%p qmd_z_offset=%" PRIu64 " qmd_z_va=0x%016" PRIx64 " qmd_w_map=%p qmd_w_offset=%" PRIu64 " qmd_w_va=0x%016" PRIx64 " root_c_map=%p root_c_offset=%" PRIu64 " root_c_va=0x%016" PRIx64 " root_size=%zu qmd_size=256 root_alignment=%u qmd_alignment=256 upload_mem=%p backing_mem=%p bo_handle=%u nvmap_identity=same_shim_bo_handle upload_base=0x%016" PRIx64 " footprint=7168 remaining=58368 one_backing=1 ownership=command_buffer_through_completion cleanup=existing_pool_path later_consumer_displacement=0 gpu_visible=UNPROVEN",
++                  nvk_qmd_upload_diag.root_reuse_distance_variant_enabled ?
++                     "variant" : "control",
++                  primary_root_map, root_a_offset, primary_root_addr,
++                  primary_map, qmd_x_offset, primary_addr, secondary_map,
++                  qmd_y_offset, secondary_addr, alternate_root_map,
++                  root_b_offset, alternate_root_addr, third_qmd_map,
++                  qmd_z_offset, third_qmd_addr, fourth_qmd_map, qmd_w_offset,
++                  fourth_qmd_addr, third_root_map, root_c_offset,
++                  third_root_addr, sizeof(*root), min_cbuf_alignment,
++                  (void *)cmd->upload_mem, (void *)cmd->upload_mem->mem,
++                  cmd->upload_mem->mem->ops->log_handle(cmd->upload_mem->mem),
++                  upload_base);
++         }
 +         if (constant_cache_experiment &&
 +             (primary_root_addr != UINT64_C(0xc7f40000) ||
 +              primary_addr != UINT64_C(0xc7f40800) ||
@@ -690,7 +735,18 @@
 +            (constant_cache_experiment ||
 +             nvk_qmd_upload_diag.root_address_fresh_enabled) &&
 +            (trace.record % 2) == 0;
-+         if (select_alternate) {
++         if (root_reuse_distance_experiment) {
++            const uint32_t root_ring_size =
++               nvk_qmd_upload_diag.root_reuse_distance_variant_enabled ? 3 : 2;
++            const uint32_t selected_root = (trace.record - 1) % root_ring_size;
++            if (selected_root == 1) {
++               root_desc_addr = alternate_root_addr;
++               root_desc_map = alternate_root_map;
++            } else if (selected_root == 2) {
++               root_desc_addr = third_root_addr;
++               root_desc_map = third_root_map;
++            }
++         } else if (select_alternate) {
 +            root_desc_addr = alternate_root_addr;
 +            root_desc_map = alternate_root_map;
 +         }
@@ -698,29 +754,12 @@
 +
 +      uint32_t root_cbuf_index = UINT32_MAX;
 +      uint32_t root_qmd_cbuf_pos = UINT32_MAX;
-       assert(shader->cbuf_map.cbuf_count <= ARRAY_SIZE(qmd_info.cbufs));
-       for (uint32_t c = 0; c < shader->cbuf_map.cbuf_count; c++) {
-          const struct nvk_cbuf *cbuf = &shader->cbuf_map.cbufs[c];
-
-          struct nvk_buffer_address ba;
-          if (cbuf->type == NVK_CBUF_TYPE_ROOT_DESC) {
+@@ -166,0 +651 @@
 +            root_cbuf_index = c;
-             ba = (struct nvk_buffer_address) {
-                .base_addr = root_desc_addr,
-                .size = sizeof(*root),
-@@ -179,6 +509,8 @@
-             ba.size = align(ba.size, min_cbuf_alignment);
-             ba.size = MIN2(ba.size, NVK_MAX_CBUF_SIZE);
-
+@@ -181,0 +667,2 @@
 +            if (cbuf->type == NVK_CBUF_TYPE_ROOT_DESC)
 +               root_qmd_cbuf_pos = qmd_info.num_cbufs;
-             qmd_info.cbufs[qmd_info.num_cbufs++] = (struct nak_qmd_cbuf) {
-                .index = c,
-                .addr = ba.base_addr,
-@@ -189,16 +521,386 @@
-
-       uint32_t qmd[64];
-       nak_fill_qmd(&pdev->info, &shader->info, &qmd_info, qmd, sizeof(qmd));
+@@ -191,0 +679,100 @@
 +      uint32_t counterfactual_qmd[64];
 +      memcpy(counterfactual_qmd, qmd, sizeof(qmd));
 +      if (constant_cache_experiment) {
@@ -772,7 +811,7 @@
 +      bool qmd_root_decode_match = true;
 +      bool qmd_outside_root_mask_match = true;
 +      uint64_t decoded_selected_root = root_desc_addr;
-+      if (root_address_experiment && root_qmd_cbuf_pos != UINT32_MAX) {
++      if (root_slot_experiment && root_qmd_cbuf_pos != UINT32_MAX) {
 +         qmd_info.cbufs[root_qmd_cbuf_pos].addr = primary_root_addr;
 +         nak_fill_qmd(&pdev->info, &shader->info, &qmd_info,
 +                      reference_qmd, sizeof(reference_qmd));
@@ -821,7 +860,7 @@
 +               qmd_outside_root_mask_match = false;
 +         }
 +      }
-
+@@ -193,3 +780,397 @@
 -      result = nvk_cmd_buffer_upload_data(cmd, qmd, sizeof(qmd), 0x100, &qmd_addr);
 -      if (unlikely(result != VK_SUCCESS))
 -         return result;
@@ -862,19 +901,38 @@
 +      const bool slot_valid = !two_qmd_slots ||
 +         (primary_map != NULL && secondary_map != NULL &&
 +          (primary_addr & 0xff) == 0 && (secondary_addr & 0xff) == 0 &&
-+          primary_addr != secondary_addr);
-+      const bool select_secondary = two_qmd_slots &&
++          primary_addr != secondary_addr &&
++          (!root_reuse_distance_experiment ||
++           (third_qmd_map != NULL && fourth_qmd_map != NULL &&
++            (third_qmd_addr & 0xff) == 0 &&
++            (fourth_qmd_addr & 0xff) == 0)));
++      const bool select_secondary = !root_reuse_distance_experiment &&
++         two_qmd_slots &&
 +         ((qmd_address_experiment && nvk_qmd_upload_diag.address_fresh_enabled) ||
 +          root_address_experiment) && (trace.record % 2) == 0;
-+      void *qmd_map = select_secondary ? secondary_map : primary_map;
-+      qmd_addr = select_secondary ? secondary_addr : primary_addr;
++      void *qmd_map;
++      if (root_reuse_distance_experiment) {
++         const uint32_t selected_qmd = (trace.record - 1) % 4;
++         void *const qmd_maps[4] = {
++            primary_map, secondary_map, third_qmd_map, fourth_qmd_map,
++         };
++         const uint64_t qmd_addrs[4] = {
++            primary_addr, secondary_addr, third_qmd_addr, fourth_qmd_addr,
++         };
++         qmd_map = qmd_maps[selected_qmd];
++         qmd_addr = qmd_addrs[selected_qmd];
++      } else {
++         qmd_map = select_secondary ? secondary_map : primary_map;
++         qmd_addr = select_secondary ? secondary_addr : primary_addr;
++      }
 +      if (unlikely(!slot_valid || qmd_map == NULL))
 +         return VK_ERROR_UNKNOWN;
 +      memcpy(qmd_map, qmd, sizeof(qmd));
 +
 +      if (trace_this && (nvk_qmd_upload_diag.identity_enabled ||
 +                         qmd_address_experiment || root_address_experiment ||
-+                         constant_cache_experiment)) {
++                         constant_cache_experiment ||
++                         root_reuse_distance_experiment)) {
 +         if (nvk_qmd_upload_diag.cmd != cmd) {
 +            nvk_qmd_upload_diag.cmd = cmd;
 +            nvk_qmd_upload_diag.previous_valid = false;
@@ -887,11 +945,20 @@
 +            nvk_qmd_upload_diag.dispatch_match_count = 0;
 +            nvk_qmd_upload_diag.root_exact_copy_count = 0;
 +            nvk_qmd_upload_diag.alternate_root_exact_copy_count = 0;
++            nvk_qmd_upload_diag.third_root_exact_copy_count = 0;
 +            nvk_qmd_upload_diag.root_fresh_transition_count = 0;
 +            nvk_qmd_upload_diag.root_decode_match_count = 0;
 +            nvk_qmd_upload_diag.qmd_outside_mask_match_count = 0;
 +            nvk_qmd_upload_diag.constant_cache_one_bit_match_count = 0;
 +            nvk_qmd_upload_diag.constant_cache_field_match_count = 0;
++            memset(nvk_qmd_upload_diag.root_history, 0,
++                   sizeof(nvk_qmd_upload_diag.root_history));
++            memset(nvk_qmd_upload_diag.qmd_history, 0,
++                   sizeof(nvk_qmd_upload_diag.qmd_history));
++            nvk_qmd_upload_diag.root_first_revisit_iteration = 0;
++            nvk_qmd_upload_diag.root_first_revisit_distance = 0;
++            nvk_qmd_upload_diag.qmd_first_revisit_iteration = 0;
++            nvk_qmd_upload_diag.qmd_first_revisit_distance = 0;
 +         }
 +
 +         const uint64_t source_hash = nvk_qmd_fnv1a64(qmd, sizeof(qmd));
@@ -1006,6 +1073,107 @@
 +                     mapped[i + 4], mapped[i + 5], mapped[i + 6], mapped[i + 7]);
 +            }
 +         }
++         if (root_reuse_distance_experiment) {
++            const bool root_a_match =
++               memcmp(root, primary_root_map, sizeof(*root)) == 0;
++            const bool root_b_match =
++               memcmp(root, alternate_root_map, sizeof(*root)) == 0;
++            const bool root_c_match =
++               memcmp(root, third_root_map, sizeof(*root)) == 0;
++            const bool selected_root_match =
++               memcmp(root, root_desc_map, sizeof(*root)) == 0;
++            const uint32_t root_slot = root_desc_addr == primary_root_addr ? 0 :
++               (root_desc_addr == alternate_root_addr ? 1 :
++                (root_desc_addr == third_root_addr ? 2 : UINT32_MAX));
++            const uint32_t qmd_slot = qmd_addr == primary_addr ? 0 :
++               (qmd_addr == secondary_addr ? 1 :
++                (qmd_addr == third_qmd_addr ? 2 :
++                 (qmd_addr == fourth_qmd_addr ? 3 : UINT32_MAX)));
++            uint32_t root_reuse_distance = 0, qmd_reuse_distance = 0;
++            bool root_first_revisit = false, qmd_first_revisit = false;
++            const bool root_reused = nvk_qmd_record_va_reuse(
++               nvk_qmd_upload_diag.root_history,
++               ARRAY_SIZE(nvk_qmd_upload_diag.root_history),
++               root_desc_addr, trace.record, &root_reuse_distance,
++               &root_first_revisit);
++            const bool qmd_reused = nvk_qmd_record_va_reuse(
++               nvk_qmd_upload_diag.qmd_history,
++               ARRAY_SIZE(nvk_qmd_upload_diag.qmd_history),
++               qmd_addr, trace.record, &qmd_reuse_distance,
++               &qmd_first_revisit);
++            if (root_first_revisit &&
++                nvk_qmd_upload_diag.root_first_revisit_iteration == 0) {
++               nvk_qmd_upload_diag.root_first_revisit_iteration = trace.record;
++               nvk_qmd_upload_diag.root_first_revisit_distance =
++                  root_reuse_distance;
++            }
++            if (qmd_first_revisit &&
++                nvk_qmd_upload_diag.qmd_first_revisit_iteration == 0) {
++               nvk_qmd_upload_diag.qmd_first_revisit_iteration = trace.record;
++               nvk_qmd_upload_diag.qmd_first_revisit_distance =
++                  qmd_reuse_distance;
++            }
++            if (root_a_match)
++               nvk_qmd_upload_diag.root_exact_copy_count++;
++            if (root_b_match)
++               nvk_qmd_upload_diag.alternate_root_exact_copy_count++;
++            if (root_c_match)
++               nvk_qmd_upload_diag.third_root_exact_copy_count++;
++            if (qmd_root_decode_match)
++               nvk_qmd_upload_diag.root_decode_match_count++;
++            if (qmd_outside_root_mask_match)
++               nvk_qmd_upload_diag.qmd_outside_mask_match_count++;
++
++            const struct nak_qmd_field_layout cache_layout =
++               nak_get_qmd_shader_constant_cache_invalidate_layout(&pdev->info);
++            uint32_t cache_value = UINT32_MAX;
++            const bool cache_field_false = nvk_qmd_extract_bits(
++               qmd, cache_layout.start, cache_layout.end, &cache_value) &&
++               cache_value == 0;
++            const bool schedule_valid = root_slot != UINT32_MAX &&
++               qmd_slot != UINT32_MAX &&
++               qmd_slot == (trace.record - 1) % 4 &&
++               root_slot == (trace.record - 1) %
++                  (nvk_qmd_upload_diag.root_reuse_distance_variant_enabled ?
++                   3 : 2);
++            if (unlikely(!root_a_match || !root_b_match || !root_c_match ||
++                         !selected_root_match || !source_map_match ||
++                         !qmd_root_decode_match ||
++                         !qmd_outside_root_mask_match || !cache_field_false ||
++                         !schedule_valid || !order_match))
++               return VK_ERROR_UNKNOWN;
++
++            static const char root_names[] = {'A', 'B', 'C'};
++            static const char qmd_names[] = {'X', 'Y', 'Z', 'W'};
++            nvk_root_trace_log(
++               "FG2_ROOT_REUSE_DISTANCE phase=correlation arm=%s record=%u iteration=%u seed=%u root_a_va=0x%016" PRIx64 " root_b_va=0x%016" PRIx64 " root_c_va=0x%016" PRIx64 " qmd_x_va=0x%016" PRIx64 " qmd_y_va=0x%016" PRIx64 " qmd_z_va=0x%016" PRIx64 " qmd_w_va=0x%016" PRIx64 " selected_root=%c previous_root_va=0x%016" PRIx64 " selected_root_va=0x%016" PRIx64 " root_reused=%u root_reuse_distance=%u root_first_revisit=%u selected_qmd=%c previous_qmd_va=0x%016" PRIx64 " selected_qmd_va=0x%016" PRIx64 " qmd_reused=%u qmd_reuse_distance=%u qmd_first_revisit=%u root_a_copy=%u root_b_copy=%u root_c_copy=%u selected_root_copy=%u qmd_copy=%u decoded_root_va=0x%016" PRIx64 " root_decode=%u outside_root_mask=%u qmd_cache_false=%u qmd_cache_bits=%u:%u pcas_pending_va=0x%016" PRIx64 " copy_before_dispatch=%u one_backing=1 footprint=7168 remaining=58368 gpu_visible=UNPROVEN fault_state=INSPECT_COMPLETE_STREAM",
++               nvk_qmd_upload_diag.root_reuse_distance_variant_enabled ?
++                  "variant" : "control",
++               trace.record, trace.record, source_seed,
++               primary_root_addr, alternate_root_addr, third_root_addr,
++               primary_addr, secondary_addr, third_qmd_addr, fourth_qmd_addr,
++               root_names[root_slot], nvk_qmd_upload_diag.previous_root_addr,
++               root_desc_addr, root_reused, root_reuse_distance,
++               root_first_revisit, qmd_names[qmd_slot], previous_addr,
++               qmd_addr, qmd_reused, qmd_reuse_distance, qmd_first_revisit,
++               root_a_match, root_b_match, root_c_match,
++               selected_root_match, source_map_match, decoded_selected_root,
++               qmd_root_decode_match, qmd_outside_root_mask_match,
++               cache_field_false, cache_layout.start, cache_layout.end,
++               qmd_addr, order_match);
++            if (trace.record <= 5) {
++               const uint32_t *mapped = qmd_map;
++               for (uint32_t i = 0; i < 64; i += 8)
++                  nvk_root_trace_log(
++                     "FG2_ROOT_REUSE_DISTANCE phase=qmd_payload arm=%s record=%u dword=%u reference=%08x,%08x,%08x,%08x,%08x,%08x,%08x,%08x selected=%08x,%08x,%08x,%08x,%08x,%08x,%08x,%08x mapped=%08x,%08x,%08x,%08x,%08x,%08x,%08x,%08x",
++                     nvk_qmd_upload_diag.root_reuse_distance_variant_enabled ?
++                        "variant" : "control",
++                     trace.record, i,
++                     reference_qmd[i], reference_qmd[i + 1], reference_qmd[i + 2], reference_qmd[i + 3], reference_qmd[i + 4], reference_qmd[i + 5], reference_qmd[i + 6], reference_qmd[i + 7],
++                     qmd[i], qmd[i + 1], qmd[i + 2], qmd[i + 3], qmd[i + 4], qmd[i + 5], qmd[i + 6], qmd[i + 7],
++                     mapped[i], mapped[i + 1], mapped[i + 2], mapped[i + 3], mapped[i + 4], mapped[i + 5], mapped[i + 6], mapped[i + 7]);
++            }
++         }
 +         if (root_address_experiment) {
 +            const bool primary_root_match =
 +               memcmp(root, primary_root_map, sizeof(*root)) == 0;
@@ -1093,44 +1261,32 @@
 +            nvk_qmd_upload_diag.previous_valid = false;
 +         }
 +      }
-    }
-
-    *qmd_addr_out = qmd_addr;
-    if (root_desc_addr_out != NULL)
-       *root_desc_addr_out = root_desc_addr;
-
+@@ -201,0 +1183,5 @@
 +   if (detailed_trace)
 +      nvk_root_trace_log(
 +         "FG2_ROOT_DIAG phase=qmd_upload record=%u cmd=%p qmd_gpu_va=0x%016" PRIx64 " root_gpu_va=0x%016" PRIx64,
 +         trace.record, (void *)cmd, qmd_addr, root_desc_addr);
 +
-    return VK_SUCCESS;
- }
-
-@@ -257,11 +959,17 @@
-
-    uint32_t base_workgroup[3] = { baseGroupX, baseGroupY, baseGroupZ };
-    uint32_t global_size[3] = { groupCountX, groupCountY, groupCountZ };
+@@ -259,0 +1246,11 @@
 +   struct nvk_root_trace_record trace = {0};
 +   const bool trace_this = nvk_root_trace_get_record(cmd, &trace);
 +   const bool detailed_trace = trace_this && trace.record <= 2;
 +   static uint32_t dispatch_count;
++   static const struct nvk_cmd_buffer *dispatch_cmd;
++   if (trace_this && dispatch_cmd != cmd) {
++      dispatch_cmd = cmd;
++      dispatch_count = 0;
++   }
 +   if (trace_this)
 +      dispatch_count++;
-    nvk_flush_compute_state(cmd, base_workgroup, global_size);
-
+@@ -262 +1259 @@
 -   uint64_t qmd_addr = 0;
 +   uint64_t qmd_addr = 0, root_desc_addr = 0;
-    VkResult result = nvk_cmd_flush_cs_qmd(cmd, &cmd->state, global_size,
+@@ -264 +1261 @@
 -                                          &qmd_addr, NULL);
 +                                          &qmd_addr, &root_desc_addr);
-    if (result != VK_SUCCESS) {
-       vk_command_buffer_set_error(&cmd->vk, result);
-       return;
-@@ -281,6 +989,94 @@
-    P_MTHD(p, NVA0C0, SEND_PCAS_A);
-    P_NVA0C0_SEND_PCAS_A(p, qmd_addr >> 8);
-
+@@ -282,0 +1280,142 @@
++
 +   if (trace_this) {
 +      const uint32_t pcas = qmd_addr >> 8;
 +      const uint64_t dispatch_addr = (uint64_t)pcas << 8;
@@ -1146,7 +1302,9 @@
 +           nvk_qmd_upload_diag.root_address_control_enabled ||
 +           nvk_qmd_upload_diag.root_address_fresh_enabled ||
 +           nvk_qmd_upload_diag.constant_cache_control_enabled ||
-+           nvk_qmd_upload_diag.constant_cache_invalidate_enabled) &&
++           nvk_qmd_upload_diag.constant_cache_invalidate_enabled ||
++           nvk_qmd_upload_diag.root_reuse_distance_control_enabled ||
++           nvk_qmd_upload_diag.root_reuse_distance_variant_enabled) &&
 +          dispatch_match)
 +         nvk_qmd_upload_diag.dispatch_match_count++;
 +      if (detailed_trace)
@@ -1217,17 +1375,62 @@
 +               nvk_qmd_upload_diag.dispatch_match_count,
 +               dispatch_count == trace.record);
 +      }
++      if (nvk_qmd_upload_diag.root_reuse_distance_control_enabled ||
++          nvk_qmd_upload_diag.root_reuse_distance_variant_enabled) {
++         nvk_root_trace_log(
++            "FG2_ROOT_REUSE_DISTANCE phase=dispatch arm=%s record=%u selected_root_va=0x%016" PRIx64 " selected_qmd_va=0x%016" PRIx64 " pcas=0x%08" PRIx64 " dispatch_qmd_va=0x%016" PRIx64 " address_match=%u order_match=%u fault_state=INSPECT_COMPLETE_STREAM",
++            nvk_qmd_upload_diag.root_reuse_distance_variant_enabled ?
++               "variant" : "control",
++            trace.record, root_desc_addr, qmd_addr, (uint64_t)pcas,
++            dispatch_addr, dispatch_match, dispatch_count == trace.record);
++         if (trace.record == 64) {
++            const uint32_t expected_root_first =
++               nvk_qmd_upload_diag.root_reuse_distance_variant_enabled ? 4 : 3;
++            const uint32_t expected_root_distance =
++               nvk_qmd_upload_diag.root_reuse_distance_variant_enabled ? 3 : 2;
++            const bool aggregate_valid =
++               nvk_qmd_upload_diag.root_first_revisit_iteration ==
++                  expected_root_first &&
++               nvk_qmd_upload_diag.root_first_revisit_distance ==
++                  expected_root_distance &&
++               nvk_qmd_upload_diag.qmd_first_revisit_iteration == 5 &&
++               nvk_qmd_upload_diag.qmd_first_revisit_distance == 4 &&
++               nvk_qmd_upload_diag.root_exact_copy_count == 64 &&
++               nvk_qmd_upload_diag.alternate_root_exact_copy_count == 64 &&
++               nvk_qmd_upload_diag.third_root_exact_copy_count == 64 &&
++               nvk_qmd_upload_diag.exact_copy_count == 64 &&
++               nvk_qmd_upload_diag.root_decode_match_count == 64 &&
++               nvk_qmd_upload_diag.qmd_outside_mask_match_count == 64 &&
++               nvk_qmd_upload_diag.dispatch_match_count == 64 &&
++               dispatch_count == trace.record;
++            nvk_root_trace_log(
++               "FG2_ROOT_REUSE_DISTANCE phase=aggregate arm=%s records=64 root_schedule=%s qmd_schedule=X/Y/Z/W root_first_revisit_iteration=%u root_first_revisit_distance=%u qmd_first_revisit_iteration=%u qmd_first_revisit_distance=%u root_a_copies=%u/64 root_b_copies=%u/64 root_c_copies=%u/64 qmd_copies=%u/64 root_decodes=%u/64 outside_root_mask=%u/64 dispatch_matches=%u/64 footprint=7168 remaining=58368 one_backing=1 ownership_through_completion=1 ordering_complete=%u aggregate_valid=%u gpu_visible=UNPROVEN fault_state=NO_DRIVER_FAULT_REPORTED",
++               nvk_qmd_upload_diag.root_reuse_distance_variant_enabled ?
++                  "variant" : "control",
++               nvk_qmd_upload_diag.root_reuse_distance_variant_enabled ?
++                  "A/B/C" : "A/B",
++               nvk_qmd_upload_diag.root_first_revisit_iteration,
++               nvk_qmd_upload_diag.root_first_revisit_distance,
++               nvk_qmd_upload_diag.qmd_first_revisit_iteration,
++               nvk_qmd_upload_diag.qmd_first_revisit_distance,
++               nvk_qmd_upload_diag.root_exact_copy_count,
++               nvk_qmd_upload_diag.alternate_root_exact_copy_count,
++               nvk_qmd_upload_diag.third_root_exact_copy_count,
++               nvk_qmd_upload_diag.exact_copy_count,
++               nvk_qmd_upload_diag.root_decode_match_count,
++               nvk_qmd_upload_diag.qmd_outside_mask_match_count,
++               nvk_qmd_upload_diag.dispatch_match_count,
++               dispatch_count == trace.record, aggregate_valid);
++            if (unlikely(!aggregate_valid)) {
++               vk_command_buffer_set_error(&cmd->vk, VK_ERROR_UNKNOWN);
++               return;
++            }
++         }
++      }
 +   }
-+
-    if (nvk_cmd_buffer_compute_cls(cmd) <= TURING_COMPUTE_A) {
-       P_IMMD(p, NVA0C0, SEND_SIGNALING_PCAS_B, {
-             .invalidate = INVALIDATE_TRUE,
 --- a/src/nouveau/vulkan/nvk_cmd_draw.c
 +++ b/src/nouveau/vulkan/nvk_cmd_draw.c
-@@ -69,7 +69,17 @@
-    struct mme_value mask = mme_load(b);
-    struct mme_value reg = mme_load(b);
-
+@@ -72 +72,11 @@
 -   mme_set_priv_reg(b, value, mask, reg);
 +   /* SWITCH/Horizon PATCH: privileged GR register writes via the FECS falcon
 +    * (SET_FALCON04) are BLOCKED for homebrew channels — the FECS raises an error
@@ -1240,15 +1443,9 @@
 +    * Switch-only.) */
 +   (void)value; (void)mask; (void)reg;
 +   /* was: mme_set_priv_reg(b, value, mask, reg); */
- }
-
- void
 --- a/src/nouveau/vulkan/nvk_image.c
 +++ b/src/nouveau/vulkan/nvk_image.c
-@@ -24,6 +24,50 @@
- #include "clc197.h"
- #include "clc597.h"
-
+@@ -26,0 +27,44 @@
 +#include <stdio.h>
 +#include <stdlib.h>
 +/* switch-nvk diagnostic: dump VkImageCreateInfo + computed plane size so we
@@ -1293,13 +1490,7 @@
 +   return true;
 +}
 +
- static VkFormatFeatureFlags2
- nvk_get_image_plane_format_features(struct nvk_physical_device *pdev,
-                                     VkFormat vk_format, VkImageTiling tiling,
-@@ -854,6 +898,26 @@
-       };
-
-       image->planes[plane].nil = nil_image_new(&pdev->info, &nil_info);
+@@ -856,0 +901,20 @@
 +
 +      /* switch-nvk: dump the descriptor + resulting plane size so we can
 +       * trace bogus VA allocs. Cheap (1 line per image). */
@@ -1320,36 +1511,18 @@
 +                  (unsigned)plane);
 +         switch_nvk_image_log(b);
 +      }
-    }
-
-    if (image->vk.format == VK_FORMAT_D32_SFLOAT_S8_UINT) {
 --- a/src/nouveau/vulkan/nvk_instance.c
 +++ b/src/nouveau/vulkan/nvk_instance.c
-@@ -60,6 +60,9 @@
- #ifndef VK_USE_PLATFORM_WIN32_KHR
-    .EXT_headless_surface = true,
- #endif
+@@ -62,0 +63,3 @@
 +#ifdef VK_USE_PLATFORM_VI_NN
 +   .NN_vi_surface = true,
 +#endif
-    .KHR_device_group_creation = true,
-    .KHR_external_fence_capabilities = true,
-    .KHR_external_memory_capabilities = true,
-@@ -168,6 +171,8 @@
-       nvk_create_drm_physical_device;
-    instance->vk.physical_devices.destroy = nvk_physical_device_destroy;
-
+@@ -170,0 +174,2 @@
 +   STATIC_ASSERT(sizeof(instance->driver_build_sha) == SHA1_DIGEST_LENGTH);
 +#ifdef HAVE_DL_ITERATE_PHDR
-    const struct build_id_note *note =
-       build_id_find_nhdr_for_addr(nvk_CreateInstance);
-    if (!note) {
-@@ -183,8 +188,17 @@
-       goto fail_init;
-    }
-
+@@ -186 +190,0 @@
 -   STATIC_ASSERT(sizeof(instance->driver_build_sha) == SHA1_DIGEST_LENGTH);
-    memcpy(instance->driver_build_sha, build_id_data(note), SHA1_DIGEST_LENGTH);
+@@ -187,0 +192,10 @@
 +#else
 +   /* Horizon/Switch has no dl_iterate_phdr / ELF build-id note; derive a stable driver SHA
 +    * from the package version so the pipeline-cache UUID is deterministic across runs. */
@@ -1360,15 +1533,9 @@
 +      _mesa_sha1_final(&sha1_ctx, instance->driver_build_sha);
 +   }
 +#endif
-
- #if DETECT_OS_ANDROID
-    struct u_gralloc *u_gralloc = vk_android_init_ugralloc();
 --- a/src/nouveau/vulkan/nvk_physical_device.h
 +++ b/src/nouveau/vulkan/nvk_physical_device.h
-@@ -96,4 +96,13 @@
- #define NVK_USE_WSI_PLATFORM
- #endif
-
+@@ -98,0 +99,9 @@
 +/* Switch (libnx) has no X11/Wayland/KMS-DRM platform, but wsi_common_headless.c
 + * is always compiled on non-Windows, so VK_EXT_headless_surface is available.
 + * Enable the WSI machinery (KHR_surface + the physical-device surface queries +
@@ -1378,7 +1545,6 @@
 +#define NVK_USE_WSI_PLATFORM
 +#endif
 +
- #endif
 --- /dev/null
 +++ b/src/nouveau/vulkan/nvk_qmd_constant_cache_validation.h
 @@ -0,0 +1,18 @@
@@ -1402,10 +1568,7 @@
 +#endif
 --- a/src/nouveau/vulkan/nvk_queue.c
 +++ b/src/nouveau/vulkan/nvk_queue.c
-@@ -19,6 +19,23 @@
- #include "nv_push_clc3c0.h"
- #include "nv_push_clc397.h"
-
+@@ -21,0 +22,17 @@
 +/* Switch port: temporary diagnostic into the app's drm_shim log sink. REMOVE. */
 +#include <stdarg.h>
 +#include <stdio.h>
@@ -1423,68 +1586,31 @@
 +   g_drm_shim_log_sink(b);
 +}
 +
- static VkResult
- nvk_queue_submit_simple(struct nvk_queue *queue,
-                         uint32_t dw_count, const uint32_t *dw);
-@@ -276,13 +293,18 @@
-
-    const bool sync = pdev->debug_flags & NVK_DEBUG_PUSH_SYNC;
-
+@@ -278,0 +296,3 @@
 +   qe_log("nvk_exec: enter cb=%u wait=%u sig=%u\n",
 +          submit->command_buffer_count, submit->wait_count, submit->signal_count);
 +
-    if (submit->command_buffer_count > 0) {
-       result = nvk_queue_state_update(queue, &queue->state);
+@@ -280,0 +301 @@
 +      qe_log("nvk_exec: state_update -> %d\n", result);
-       if (result != VK_SUCCESS)
-          return result;
-
-       uint64_t upload_time_point;
-       result = nvk_upload_queue_flush(dev, &dev->upload, &upload_time_point);
+@@ -285,0 +307 @@
 +      qe_log("nvk_exec: upload_flush -> %d tp=%llu\n", result, (unsigned long long)upload_time_point);
-       if (result != VK_SUCCESS)
-          return result;
-
-@@ -292,17 +314,22 @@
-             .stage_mask = ~0,
-             .wait_value = upload_time_point,
-          };
+@@ -294,0 +317 @@
 +         qe_log("nvk_exec: ctx_wait(upload tp=%llu)...\n", (unsigned long long)upload_time_point);
-          result = nvkmd_ctx_wait(queue->exec_ctx, &queue->vk.base, 1, &wait);
+@@ -295,0 +319 @@
 +         qe_log("nvk_exec: ctx_wait(upload) -> %d\n", result);
-          if (result != VK_SUCCESS)
-             goto fail;
-       }
-    }
-
+@@ -300,0 +325 @@
 +   qe_log("nvk_exec: ctx_wait(waits=%u)...\n", submit->wait_count);
-    result = nvkmd_ctx_wait(queue->exec_ctx, &queue->vk.base,
-                            submit->wait_count, submit->waits);
+@@ -302,0 +328 @@
 +   qe_log("nvk_exec: ctx_wait(waits) -> %d\n", result);
-    if (result != VK_SUCCESS)
-       goto fail;
-
+@@ -305,0 +332 @@
 +   qe_log("nvk_exec: exec loop start (%u cbufs)\n", submit->command_buffer_count);
-    for (unsigned i = 0; i < submit->command_buffer_count; i++) {
-       struct nvk_cmd_buffer *cmd =
-          container_of(submit->command_buffers[i], struct nvk_cmd_buffer, vk);
-@@ -332,8 +359,10 @@
-          goto fail;
-    }
-
+@@ -334,0 +362 @@
 +   qe_log("nvk_exec: execs done; ctx_signal(sig=%u)...\n", submit->signal_count);
-    result = nvkmd_ctx_signal(queue->exec_ctx, &queue->vk.base,
-                              submit->signal_count, submit->signals);
+@@ -336,0 +365 @@
 +   qe_log("nvk_exec: ctx_signal -> %d\n", result);
-    if (result != VK_SUCCESS)
-       goto fail;
-
 --- a/src/nouveau/vulkan/nvk_wsi.c
 +++ b/src/nouveau/vulkan/nvk_wsi.c
-@@ -32,8 +32,19 @@
-       return result;
-
-    pdev->wsi_device.supports_scanout = false;
+@@ -34,0 +35,10 @@
 +   /* Switch: the libnx winsys has no dma-buf/PRIME or DRM-format-modifier export,
 +    * so force modifiers OFF — the (always-compiled) headless WSI must allocate
 +    * plain optimal images, not modifier/dma-buf images. */
@@ -1495,18 +1621,11 @@
 +    * which our winsys can't back, failing swapchain creation. */
 +   pdev->wsi_device.khr_present_wait = false;
 +#else
-    pdev->wsi_device.supports_modifiers =
-       pdev->vk.supported_extensions.table.EXT_image_drm_format_modifier;
+@@ -36,0 +47 @@
 +#endif
-
-    pdev->vk.wsi_device = &pdev->wsi_device;
-
 --- a/src/nouveau/vulkan/nvkmd/nouveau/nvkmd_nouveau.h
 +++ b/src/nouveau/vulkan/nvkmd/nouveau/nvkmd_nouveau.h
-@@ -36,11 +36,14 @@
-                                        enum nvk_debug debug_flags,
-                                        struct nvkmd_pdev **pdev_out);
-
+@@ -39,2 +39,6 @@
 -#define NVKMD_NOUVEAU_HEAP_START ((uint64_t)4096)
 -#define NVKMD_NOUVEAU_HEAP_END ((uint64_t)(1ull << 38))
 +/* switch-nvk: libnx's nvgpu address space only accepts fixed VA reservations in
@@ -1515,19 +1634,13 @@
 + * [4 KiB, 256 GiB] which lands outside nvgpu's mappable VA. */
 +#define NVKMD_NOUVEAU_HEAP_START ((uint64_t)(1ull << 34))   /* 16 GiB */
 +#define NVKMD_NOUVEAU_HEAP_END ((uint64_t)(1ull << 37))     /* 128 GiB */
- #define NVKMD_NOUVEAU_REPLAY_HEAP_START NVKMD_NOUVEAU_HEAP_END
+@@ -42,2 +46 @@
 -#define NVKMD_NOUVEAU_REPLAY_HEAP_END \
 -   ((uint64_t)NOUVEAU_WS_DEVICE_KERNEL_RESERVATION_START)
 +#define NVKMD_NOUVEAU_REPLAY_HEAP_END ((uint64_t)(0x3f00000000ull)) /* ~252 GiB */
-
- struct nvkmd_nouveau_dev {
-    struct nvkmd_dev base;
 --- a/src/nouveau/vulkan/nvkmd/nouveau/nvkmd_nouveau_dev.c
 +++ b/src/nouveau/vulkan/nvkmd/nouveau/nvkmd_nouveau_dev.c
-@@ -47,6 +47,30 @@
-
-    simple_mtx_init(&dev->heap_mutex, mtx_plain);
-
+@@ -49,0 +50,24 @@
 +#ifdef __SWITCH__
 +   /* switch-nvk: Tegra's nvgpu only honors a FIXED GPU-VA map inside a region
 +    * previously reserved non-fixed. The winsys shim reserves one big small-page
@@ -1552,23 +1665,11 @@
 +      util_vma_heap_init(&dev->replay_heap, arena_base + main_size, replay_size);
 +   }
 +#else
-    STATIC_ASSERT(NVKMD_NOUVEAU_HEAP_START < NVKMD_NOUVEAU_HEAP_END);
-    util_vma_heap_init(&dev->heap, NVKMD_NOUVEAU_HEAP_START,
-                       NVKMD_NOUVEAU_HEAP_END - NVKMD_NOUVEAU_HEAP_START);
-@@ -56,6 +80,7 @@
-    util_vma_heap_init(&dev->replay_heap,
-       NVKMD_NOUVEAU_REPLAY_HEAP_START,
-       NVKMD_NOUVEAU_REPLAY_HEAP_END - NVKMD_NOUVEAU_REPLAY_HEAP_START);
+@@ -58,0 +83 @@
 +#endif
-
-    *dev_out = &dev->base;
-
 --- a/src/nouveau/vulkan/nvkmd/nouveau/nvkmd_nouveau_va.c
 +++ b/src/nouveau/vulkan/nvkmd/nouveau/nvkmd_nouveau_va.c
-@@ -13,6 +13,19 @@
- #include <stdio.h>
- #include <xf86drm.h>
-
+@@ -15,0 +16,13 @@
 +/* switch-nvk diagnostic: report VA-heap exhaustion (the requested size) through
 + * the winsys shim's log sink so it lands in the app log. */
 +extern void (*g_drm_shim_log_sink)(const char *);
@@ -1582,36 +1683,21 @@
 +   g_drm_shim_log_sink(b);
 +}
 +
- static VkResult MUST_CHECK
- alloc_heap_addr_locked(struct nvkmd_nouveau_dev *dev,
-                        struct vk_object_base *log_obj,
-@@ -44,14 +57,18 @@
-       *addr_out = fixed_addr;
-    } else if (flags & NVKMD_VA_REPLAY) {
-       *addr_out = util_vma_heap_alloc(&dev->replay_heap, size_B, align_B);
+@@ -47 +60,2 @@
 -      if (*addr_out == 0)
 +      if (*addr_out == 0) {
 +         shim_va_log("replay", size_B, align_B);   /* switch-nvk diagnostic */
-          return vk_errorf(log_obj, VK_ERROR_OUT_OF_DEVICE_MEMORY,
-                           "Failed to allocate virtual address range");
+@@ -49,0 +64 @@
 +      }
-    } else {
-       *addr_out = util_vma_heap_alloc(&dev->heap, size_B, align_B);
+@@ -52 +67,2 @@
 -      if (*addr_out == 0)
 +      if (*addr_out == 0) {
 +         shim_va_log("main", size_B, align_B);      /* switch-nvk diagnostic */
-          return vk_errorf(log_obj, VK_ERROR_OUT_OF_DEVICE_MEMORY,
-                           "Failed to allocate virtual address range");
+@@ -54,0 +71 @@
 +      }
-    }
-
-    return VK_SUCCESS;
 --- a/src/util/detect_os.h
 +++ b/src/util/detect_os.h
-@@ -91,6 +91,14 @@
- #define DETECT_OS_POSIX 1
- #endif
-
+@@ -93,0 +94,8 @@
 +/* Nintendo Switch (Horizon/libnx + newlib). newlib provides a POSIX-ish C library (unistd,
 + * time.h, sched_yield, pthreads via libnx) but lacks demand-paged mmap; treat it as POSIX
 + * (POSIX_LITE follows below) and let the few mmap users fall back to the compat stubs. */
@@ -1620,62 +1706,33 @@
 +#define DETECT_OS_POSIX 1
 +#endif
 +
-
- /*
-  * Make sure DETECT_OS_* are always defined, so that they can be used with #if
-@@ -146,5 +154,8 @@
- #ifndef DETECT_OS_MANAGARM
- #define DETECT_OS_MANAGARM 0
- #endif
+@@ -147,0 +156,3 @@
++#endif
 +#ifndef DETECT_OS_HORIZON
 +#define DETECT_OS_HORIZON 0
-+#endif
-
- #endif /* DETECT_OS_H */
 --- a/src/util/libdrm.h
 +++ b/src/util/libdrm.h
-@@ -27,7 +27,11 @@
-  * the proliferation of #ifdef'ery to support environments without libdrm.
-  */
-
+@@ -30 +30,5 @@
 -#ifdef HAVE_LIBDRM
 +/* switch-nvk: on Horizon there's no system libdrm, but our winsys shim
 + * (winsys/drm_shim.c) provides the real libdrm core entry points over libnx nv.
 + * Use the real <xf86drm.h> so callers link to those instead of these no-op
 + * stubs (which return -ENOENT and make device enumeration find nothing). */
 +#if defined(HAVE_LIBDRM) || defined(__SWITCH__)
- #include <xf86drm.h>
- #else
-
 --- a/src/util/os_misc.c
 +++ b/src/util/os_misc.c
-@@ -57,7 +57,7 @@
- #  include <unistd.h>
- #  include <log/log.h>
- #  include <cutils/properties.h>
+@@ -60 +60 @@
 -#elif DETECT_OS_LINUX || DETECT_OS_CYGWIN || DETECT_OS_SOLARIS || DETECT_OS_HURD || DETECT_OS_MANAGARM
 +#elif DETECT_OS_LINUX || DETECT_OS_CYGWIN || DETECT_OS_SOLARIS || DETECT_OS_HURD || DETECT_OS_MANAGARM || DETECT_OS_HORIZON
- #  include <unistd.h>
- #elif DETECT_OS_OPENBSD || DETECT_OS_FREEBSD
- #  include <sys/resource.h>
-@@ -332,6 +332,11 @@
- #elif DETECT_OS_FUCHSIA
-    *size = zx_system_get_physmem();
-    return true;
+@@ -333,0 +334,5 @@
++   return true;
 +#elif DETECT_OS_HORIZON
 +   /* Switch: newlib has no _SC_PHYS_PAGES. Report a fixed upper bound for the application memory
 +    * region (~3 GiB); the actual VRAM/heap budget is taken from libnx svcGetInfo in the winsys. */
 +   *size = (uint64_t)3072 << 20;
-+   return true;
- #else
- #error unexpected platform in os_misc.c
-    return false;
 --- a/src/util/u_endian.h
 +++ b/src/util/u_endian.h
-@@ -89,6 +89,19 @@
-
- #endif
-
+@@ -91,0 +92,13 @@
 +/* Switch port: newlib/horizon has no usable <endian.h> __BYTE_ORDER, and the platform
 + * isn't matched above. Fall back to the GCC/Clang built-in byte-order macros, which are
 + * always defined regardless of libc headers. */
@@ -1689,15 +1746,9 @@
 +# endif
 +#endif
 +
- #if !defined(UTIL_ARCH_LITTLE_ENDIAN) || !defined(UTIL_ARCH_BIG_ENDIAN)
- # error "UTIL_ARCH_LITTLE_ENDIAN and/or UTIL_ARCH_BIG_ENDIAN were unset."
- #elif UTIL_ARCH_LITTLE_ENDIAN == UTIL_ARCH_BIG_ENDIAN
 --- a/src/vulkan/runtime/meson.build
 +++ b/src/vulkan/runtime/meson.build
-@@ -57,6 +57,13 @@
- if dep_libdrm.found()
-   vulkan_lite_runtime_files += files('vk_drm_syncobj.c')
-   vulkan_lite_runtime_deps += dep_libdrm
+@@ -59,0 +60,7 @@
 +elif host_machine.system() == 'horizon'
 +  # Switch (switch-nvk): there is no system libdrm, but our winsys shim
 +  # (winsys/drm_shim.c) supplies the libdrm *core* symbols this file needs
@@ -1705,37 +1756,19 @@
 +  # vk_sync_type is available (vk_drm_syncobj_get_type/_finish) without
 +  # pulling in the rest of the HAVE_LIBDRM code paths.
 +  vulkan_lite_runtime_files += files('vk_drm_syncobj.c')
- endif
-
- if with_platform_android
 --- a/src/vulkan/runtime/vk_image.c
 +++ b/src/vulkan/runtime/vk_image.c
-@@ -96,7 +96,7 @@
-       vk_find_struct_const(pCreateInfo->pNext, WSI_IMAGE_CREATE_INFO_MESA);
-    image->wsi_legacy_scanout = wsi_info && wsi_info->scanout;
-
+@@ -99 +99 @@
 -#if DETECT_OS_LINUX || DETECT_OS_BSD
 +#if DETECT_OS_LINUX || DETECT_OS_BSD || DETECT_OS_HORIZON
-    image->drm_format_mod = ((1ULL << 56) - 1) /* DRM_FORMAT_MOD_INVALID */;
- #endif
-
 --- a/src/vulkan/runtime/vk_image.h
 +++ b/src/vulkan/runtime/vk_image.h
-@@ -75,7 +75,7 @@
-    /* wsi_image_create_info::scanout */
-    bool wsi_legacy_scanout;
-
+@@ -78 +78 @@
 -#if DETECT_OS_LINUX || DETECT_OS_BSD
 +#if DETECT_OS_LINUX || DETECT_OS_BSD || DETECT_OS_HORIZON
-    /* VK_EXT_drm_format_modifier
-     *
-     * Initialized by vk_image_create/init() to DRM_FORMAT_MOD_INVALID.  It's
 --- a/src/vulkan/runtime/vk_instance.c
 +++ b/src/vulkan/runtime/vk_instance.c
-@@ -405,6 +405,17 @@
-    drmDevicePtr devices[256];
-    int max_devices = drmGetDevices2(0, devices, ARRAY_SIZE(devices));
-
+@@ -407,0 +408,11 @@
 +   /* TEMP diagnostic (switch-nvk). */
 +   {
 +      extern void (*g_drm_shim_log_sink)(const char *);
@@ -1747,13 +1780,7 @@
 +      }
 +   }
 +
-    if (max_devices < 1)
-       return VK_SUCCESS;
-
-@@ -433,6 +444,16 @@
- static VkResult
- enumerate_physical_devices_locked(struct vk_instance *instance)
- {
+@@ -435,0 +447,10 @@
 +   /* TEMP diagnostic (switch-nvk): report which enumeration path runs. */
 +   extern void (*g_drm_shim_log_sink)(const char *);
 +   if (g_drm_shim_log_sink) {
@@ -1764,52 +1791,28 @@
 +         : "vk_instance: try_create_for_drm NULL -> NO drm path\n");
 +   }
 +
-    if (instance->physical_devices.enumerate) {
-       VkResult result = instance->physical_devices.enumerate(instance);
-       if (result != VK_ERROR_INCOMPATIBLE_DRIVER)
 --- a/src/vulkan/wsi/meson.build
 +++ b/src/vulkan/wsi/meson.build
-@@ -31,6 +31,11 @@
-   files_vulkan_wsi += files('wsi_common_headless.c')
- endif
-
+@@ -33,0 +34,5 @@
 +# Switch (libnx) VI/nwindow WSI backend — VK_NN_vi_surface.
 +if host_machine.system() == 'horizon'
 +  files_vulkan_wsi += files('wsi_common_switch.c')
 +endif
 +
- if with_platform_macos
-   files_vulkan_wsi += files('wsi_common_metal.c', 'wsi_common_metal_layer.m')
- endif
 --- a/src/vulkan/wsi/wsi_common.c
 +++ b/src/vulkan/wsi/wsi_common.c
-@@ -248,6 +248,12 @@
-       goto fail;
- #endif
-
+@@ -250,0 +251,6 @@
 +#ifdef VK_USE_PLATFORM_VI_NN
 +   result = wsi_switch_init_wsi(wsi, alloc, pdevice);
 +   if (result != VK_SUCCESS)
 +      goto fail;
 +#endif
 +
-    present_mode = getenv("MESA_VK_WSI_PRESENT_MODE");
-    if (present_mode) {
-       if (!strcmp(present_mode, "fifo")) {
-@@ -309,6 +315,9 @@
- {
- #ifndef VK_USE_PLATFORM_WIN32_KHR
-    wsi_headless_finish_wsi(wsi, alloc);
+@@ -311,0 +318,3 @@
 +#ifdef VK_USE_PLATFORM_VI_NN
 +   wsi_switch_finish_wsi(wsi, alloc);
 +#endif
- #endif
- #ifdef VK_USE_PLATFORM_DISPLAY_KHR
-    wsi_display_finish_wsi(wsi, alloc);
-@@ -971,6 +980,21 @@
-                                         pRectCount, pRects);
- }
-
+@@ -973,0 +983,15 @@
 +/* Switch port: temporary diagnostic into the app's drm_shim log sink. REMOVE. */
 +#include <stdarg.h>
 +extern void (*g_drm_shim_log_sink)(const char *);
@@ -1825,103 +1828,42 @@
 +   g_drm_shim_log_sink(b);
 +}
 +
- VKAPI_ATTR VkResult VKAPI_CALL
- wsi_CreateSwapchainKHR(VkDevice _device,
-                        const VkSwapchainCreateInfoKHR *pCreateInfo,
-@@ -1009,6 +1033,8 @@
-    VkResult result = iface->create_swapchain(surface, _device, wsi_device,
-                                              &info, alloc,
-                                              &swapchain);
+@@ -1011,0 +1036,2 @@
 +   sc_log("[wsi] iface->create_swapchain -> %d (present_wait=%d blit.queue=%p)\n",
 +          result, wsi_device->khr_present_wait, result == VK_SUCCESS ? (void*)swapchain->blit.queue : NULL);
-    if (result != VK_SUCCESS)
-       return result;
-
-@@ -1017,6 +1043,7 @@
-                                  sizeof (*swapchain->fences),
-                                  VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
-    if (!swapchain->fences) {
+@@ -1019,0 +1046 @@
 +      sc_log("[wsi] FAIL: fences alloc\n");
-       swapchain->destroy(swapchain, alloc);
-       return VK_ERROR_OUT_OF_HOST_MEMORY;
-    }
-@@ -1035,6 +1062,7 @@
-
-       /* We assume here that a driver exposing present_wait also exposes VK_KHR_timeline_semaphore. */
-       result = wsi_device->CreateSemaphore(_device, &sem_info, alloc, &swapchain->present_id_timeline);
+@@ -1037,0 +1065 @@
 +      sc_log("[wsi] present_wait timeline semaphore -> %d\n", result);
-       if (result != VK_SUCCESS) {
-          swapchain->destroy(swapchain, alloc);
-          return VK_ERROR_OUT_OF_HOST_MEMORY;
-@@ -1047,12 +1075,14 @@
-                                          sizeof (*swapchain->blit.semaphores),
-                                          VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
-       if (!swapchain->blit.semaphores) {
+@@ -1049,0 +1078 @@
 +         sc_log("[wsi] FAIL: blit.semaphores alloc\n");
-          wsi_device->DestroySemaphore(_device, swapchain->present_id_timeline, alloc);
-          swapchain->destroy(swapchain, alloc);
-          return VK_ERROR_OUT_OF_HOST_MEMORY;
-       }
-    }
-
+@@ -1055,0 +1085 @@
 +   sc_log("[wsi] CreateSwapchainKHR OK\n");
-    *pSwapchain = wsi_swapchain_to_handle(swapchain);
-
-    return VK_SUCCESS;
-@@ -1420,9 +1450,11 @@
-          }
-       } else {
-          MESA_TRACE_SCOPE("throttle");
+@@ -1422,0 +1453 @@
 +         sc_log("[wsi] qp: throttle WaitForFences(fence[%u], ~0)...\n", image_index);
-          result =
-             wsi->WaitForFences(device, 1, &swapchain->fences[image_index],
-                                true, ~0ull);
+@@ -1425,0 +1457 @@
 +         sc_log("[wsi] qp: throttle WaitForFences -> %d\n", result);
-          if (result != VK_SUCCESS)
-             goto fail_present;
-       }
-@@ -1534,7 +1566,10 @@
-          }
-       }
-
+@@ -1536,0 +1569,2 @@
 +      sc_log("[wsi] qp: present-internal QueueSubmit (cbufs=%u waitSem=%u)...\n",
 +             submit_info.commandBufferCount, submit_info.waitSemaphoreCount);
-       result = wsi->QueueSubmit(submit_queue, 1, &submit_info, fence);
+@@ -1537,0 +1572 @@
 +      sc_log("[wsi] qp: present-internal QueueSubmit -> %d\n", result);
-       if (result != VK_SUCCESS)
-          goto fail_present;
-
-@@ -1576,7 +1611,9 @@
-             goto fail_present;
-       }
-
+@@ -1578,0 +1614 @@
 +      sc_log("[wsi] qp: backend queue_present...\n");
-       result = swapchain->queue_present(swapchain, image_index, present_id, region);
+@@ -1579,0 +1616 @@
 +      sc_log("[wsi] qp: backend queue_present -> %d\n", result);
-       if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR)
-          goto fail_present;
-
 --- a/src/vulkan/wsi/wsi_common.h
 +++ b/src/vulkan/wsi/wsi_common.h
-@@ -97,7 +97,12 @@
-
- struct driOptionCache;
-
+@@ -99,0 +100,4 @@
 +#ifdef VK_USE_PLATFORM_VI_NN
 +/* Switch: VK_ICD_WSI_PLATFORM_VI (12) is past METAL — size the wsi[] array for it. */
 +#define VK_ICD_WSI_PLATFORM_MAX (VK_ICD_WSI_PLATFORM_VI + 1)
 +#else
- #define VK_ICD_WSI_PLATFORM_MAX (VK_ICD_WSI_PLATFORM_METAL + 1)
+@@ -100,0 +105 @@
 +#endif
-
- struct wsi_device {
-    /* Allocator for the instance */
 --- a/src/vulkan/wsi/wsi_common_headless.c
 +++ b/src/vulkan/wsi/wsi_common_headless.c
-@@ -38,6 +38,19 @@
-
- #include "drm-uapi/drm_fourcc.h"
-
+@@ -40,0 +41,13 @@
 +/* Switch port: temporary diagnostic — route headless-swapchain step logs into the
 + * app's drm_shim log sink (sdmc:/<app>.log). REMOVE before a clean re-extract. */
 +#include <stdio.h>
@@ -1935,40 +1877,16 @@
 +   g_drm_shim_log_sink(b);
 +}
 +
- struct wsi_headless {
-    struct wsi_interface base;
-
-@@ -445,6 +458,8 @@
-    assert(pCreateInfo->sType == VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR);
-
-    int num_images = pCreateInfo->minImageCount;
+@@ -447,0 +461,2 @@
 +   hl_log("[wsi-hl] create_swapchain: num_images=%d supports_modifiers=%d\n",
 +          num_images, wsi_device->supports_modifiers);
-
-    size_t size = sizeof(*chain) + num_images * sizeof(chain->images[0]);
-    chain = vk_zalloc(pAllocator, size, 8, VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
-@@ -458,6 +473,7 @@
-
-    result = wsi_swapchain_init(wsi_device, &chain->base, device,
-                                pCreateInfo, &drm_params.base, pAllocator);
+@@ -460,0 +476 @@
 +   hl_log("[wsi-hl] wsi_swapchain_init -> %d\n", result);
-    if (result != VK_SUCCESS) {
-       vk_free(pAllocator, chain);
-       return result;
-@@ -478,6 +494,7 @@
-    for (uint32_t i = 0; i < chain->base.image_count; i++) {
-       result = wsi_create_image(&chain->base, &chain->base.image_info,
-                                 &chain->images[i].base);
+@@ -480,0 +497 @@
 +      hl_log("[wsi-hl] wsi_create_image[%u] -> %d\n", i, result);
-       if (result != VK_SUCCESS)
-          goto fail;
-
 --- a/src/vulkan/wsi/wsi_common_private.h
 +++ b/src/vulkan/wsi/wsi_common_private.h
-@@ -444,6 +444,14 @@
- void wsi_headless_finish_wsi(struct wsi_device *wsi_device,
-                              const VkAllocationCallbacks *alloc);
-
+@@ -446,0 +447,8 @@
 +#ifdef VK_USE_PLATFORM_VI_NN
 +VkResult wsi_switch_init_wsi(struct wsi_device *wsi_device,
 +                             const VkAllocationCallbacks *alloc,
@@ -1977,9 +1895,6 @@
 +                           const VkAllocationCallbacks *alloc);
 +#endif
 +
- VK_DEFINE_NONDISP_HANDLE_CASTS(wsi_swapchain, base, VkSwapchainKHR,
-                                VK_OBJECT_TYPE_SWAPCHAIN_KHR)
-
 --- /dev/null
 +++ b/src/vulkan/wsi/wsi_common_switch.c
 @@ -0,0 +1,616 @@
@@ -2599,3 +2514,47 @@
 +      wsi_device->wsi[VK_ICD_WSI_PLATFORM_VI] = NULL;
 +   }
 +}
+--- /dev/null
++++ b/src/nouveau/vulkan/nvk_root_reuse_distance_validation.h
+@@ -0,0 +1,41 @@
++/*
++ * Copyright © 2026 switch-nvk contributors
++ * SPDX-License-Identifier: MIT
++ */
++#ifndef NVK_ROOT_REUSE_DISTANCE_VALIDATION_H
++#define NVK_ROOT_REUSE_DISTANCE_VALIDATION_H
++
++#include <stdbool.h>
++#include <string.h>
++
++static inline bool
++nvk_root_reuse_distance_selector_value_valid(const char *value)
++{
++   return value == NULL || strcmp(value, "0") == 0 ||
++          strcmp(value, "1") == 0;
++}
++
++static inline bool
++nvk_root_reuse_distance_selectors_valid(const char *control,
++                                        const char *variant,
++                                        bool historical_selector_active,
++                                        bool *control_enabled,
++                                        bool *variant_enabled)
++{
++   const bool control_requested =
++      control != NULL && strcmp(control, "1") == 0;
++   const bool variant_requested =
++      variant != NULL && strcmp(variant, "1") == 0;
++   const bool valid =
++      nvk_root_reuse_distance_selector_value_valid(control) &&
++      nvk_root_reuse_distance_selector_value_valid(variant) &&
++      !(control_requested && variant_requested) &&
++      !((control_requested || variant_requested) &&
++        historical_selector_active);
++
++   *control_enabled = valid && control_requested;
++   *variant_enabled = valid && variant_requested;
++   return valid;
++}
++
++#endif

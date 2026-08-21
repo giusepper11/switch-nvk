@@ -80,6 +80,14 @@ extern void (*g_drm_shim_log_sink)(const char *);
 #define FG2_QMD_SHADER_CONSTANT_CACHE_INVALIDATE 0u
 #endif
 
+#ifndef FG2_ROOT_ADDRESS_REUSE_DISTANCE_CONTROL
+#define FG2_ROOT_ADDRESS_REUSE_DISTANCE_CONTROL 0u
+#endif
+
+#ifndef FG2_ROOT_ADDRESS_REUSE_DISTANCE_VARIANT
+#define FG2_ROOT_ADDRESS_REUSE_DISTANCE_VARIANT 0u
+#endif
+
 #if FG2_ROOT_UPLOAD_CACHE_FLUSH != 0u && FG2_ROOT_UPLOAD_CACHE_FLUSH != 1u
 #error "FG2_ROOT_UPLOAD_CACHE_FLUSH must be 0 or 1"
 #endif
@@ -150,7 +158,32 @@ extern void (*g_drm_shim_log_sink)(const char *);
 #error "FG2 QMD shader constant-cache experiment excludes historical interventions"
 #endif
 
-#if (FG2_ROOT_ADDRESS_CONTROL == 1u || FG2_ROOT_ADDRESS_FRESH == 1u || \
+#if FG2_ROOT_ADDRESS_REUSE_DISTANCE_CONTROL != 0u && \
+    FG2_ROOT_ADDRESS_REUSE_DISTANCE_CONTROL != 1u
+#error "FG2_ROOT_ADDRESS_REUSE_DISTANCE_CONTROL must be 0 or 1"
+#endif
+#if FG2_ROOT_ADDRESS_REUSE_DISTANCE_VARIANT != 0u && \
+    FG2_ROOT_ADDRESS_REUSE_DISTANCE_VARIANT != 1u
+#error "FG2_ROOT_ADDRESS_REUSE_DISTANCE_VARIANT must be 0 or 1"
+#endif
+#if FG2_ROOT_ADDRESS_REUSE_DISTANCE_CONTROL == 1u && \
+    FG2_ROOT_ADDRESS_REUSE_DISTANCE_VARIANT == 1u
+#error "FG2 root address reuse-distance selectors are mutually exclusive"
+#endif
+#if (FG2_ROOT_ADDRESS_REUSE_DISTANCE_CONTROL == 1u || \
+     FG2_ROOT_ADDRESS_REUSE_DISTANCE_VARIANT == 1u) && \
+    (FG2_ROOT_UPLOAD_CACHE_FLUSH == 1u || FG2_QMD_UPLOAD_IDENTITY == 1u || \
+     FG2_QMD_UPLOAD_CACHE_FLUSH == 1u || FG2_QMD_ADDRESS_CONTROL == 1u || \
+     FG2_QMD_ADDRESS_FRESH == 1u || FG2_ROOT_ADDRESS_CONTROL == 1u || \
+     FG2_ROOT_ADDRESS_FRESH == 1u || \
+     FG2_QMD_SHADER_CONSTANT_CACHE_CONTROL == 1u || \
+     FG2_QMD_SHADER_CONSTANT_CACHE_INVALIDATE == 1u)
+#error "FG2 root address reuse-distance experiment excludes historical interventions"
+#endif
+
+#if (FG2_ROOT_ADDRESS_REUSE_DISTANCE_CONTROL == 1u || \
+     FG2_ROOT_ADDRESS_REUSE_DISTANCE_VARIANT == 1u || \
+     FG2_ROOT_ADDRESS_CONTROL == 1u || FG2_ROOT_ADDRESS_FRESH == 1u || \
      FG2_QMD_ADDRESS_CONTROL == 1u || FG2_QMD_ADDRESS_FRESH == 1u || \
      FG2_QMD_SHADER_CONSTANT_CACHE_CONTROL == 1u || \
      FG2_QMD_SHADER_CONSTANT_CACHE_INVALIDATE == 1u) && \
@@ -162,7 +195,11 @@ extern void (*g_drm_shim_log_sink)(const char *);
 #define FG2_EFFECTIVE_DIAG_LIMIT FG2_ROOT_DIAG_LIMIT
 #endif
 
-#if FG2_QMD_SHADER_CONSTANT_CACHE_INVALIDATE == 1u
+#if FG2_ROOT_ADDRESS_REUSE_DISTANCE_VARIANT == 1u
+#define FG2_BUILD_TAG "chain2-root-reuse-distance-variant"
+#elif FG2_ROOT_ADDRESS_REUSE_DISTANCE_CONTROL == 1u
+#define FG2_BUILD_TAG "chain2-root-reuse-distance-control"
+#elif FG2_QMD_SHADER_CONSTANT_CACHE_INVALIDATE == 1u
 #define FG2_BUILD_TAG "chain2-qmd-constant-cache-invalidate"
 #elif FG2_QMD_SHADER_CONSTANT_CACHE_CONTROL == 1u
 #define FG2_BUILD_TAG "chain2-qmd-constant-cache-control"
@@ -305,6 +342,7 @@ int main(void)
    void *readback_cpu = NULL;
    uint32_t qfi = UINT32_MAX;
    uint32_t failures = 0;
+   uint32_t teardown_queue_wait_complete = 0;
    VkResult r = VK_SUCCESS;
    PFN_vkQueueWaitIdle pQueueWaitIdle = NULL;
    PFN_vkDestroyInstance pDestroyInstance = NULL;
@@ -330,6 +368,16 @@ int main(void)
    LOG("contract: graphics draw -> image A -> sampled compute -> image B -> readback; %ux%u RGBA8, %u iterations", 
        IMAGE_W, IMAGE_H, ITERATIONS);
    LOG("sentinels: image A=0x5a17c3e1 image B=0xa6d42b7f; seeds=(iteration*37+5)&255");
+   if (FG2_ROOT_ADDRESS_REUSE_DISTANCE_CONTROL == 1u ||
+       FG2_ROOT_ADDRESS_REUSE_DISTANCE_VARIANT == 1u)
+      LOG("FG2_ROOT_REUSE_DISTANCE phase=arm experiment=%s control_selector=%u variant_selector=%u arm=%s root_schedule=%s qmd_schedule=X/Y/Z/W first_root_revisit=%u first_qmd_revisit=5 records=64 device_work_started=0",
+          FG2_ROOT_ADDRESS_REUSE_DISTANCE_VARIANT ?
+             "root_address_reuse_distance_variant" : "same_source_control",
+          FG2_ROOT_ADDRESS_REUSE_DISTANCE_CONTROL,
+          FG2_ROOT_ADDRESS_REUSE_DISTANCE_VARIANT,
+          FG2_ROOT_ADDRESS_REUSE_DISTANCE_VARIANT ? "variant" : "control",
+          FG2_ROOT_ADDRESS_REUSE_DISTANCE_VARIANT ? "A/B/C" : "A/B",
+          FG2_ROOT_ADDRESS_REUSE_DISTANCE_VARIANT ? 4u : 3u);
    LOG("FG2_ROOT_CACHE experiment=%s selector=%u path=%s",
        FG2_ROOT_UPLOAD_CACHE_FLUSH ? "reused_compute_root_cpu_flush" : "disabled_control",
        FG2_ROOT_UPLOAD_CACHE_FLUSH,
@@ -389,6 +437,10 @@ int main(void)
       setenv("NVK_QMD_SHADER_CONSTANT_CACHE_CONTROL", "1", 1);
    if (FG2_QMD_SHADER_CONSTANT_CACHE_INVALIDATE == 1u)
       setenv("NVK_QMD_SHADER_CONSTANT_CACHE_INVALIDATE", "1", 1);
+   if (FG2_ROOT_ADDRESS_REUSE_DISTANCE_CONTROL == 1u)
+      setenv("NVK_ROOT_ADDRESS_REUSE_DISTANCE_CONTROL", "1", 1);
+   if (FG2_ROOT_ADDRESS_REUSE_DISTANCE_VARIANT == 1u)
+      setenv("NVK_ROOT_ADDRESS_REUSE_DISTANCE_VARIANT", "1", 1);
 
    PFN_vkCreateInstance pCreateInstance =
       (PFN_vkCreateInstance)vk_icdGetInstanceProcAddr(NULL, "vkCreateInstance");
@@ -864,6 +916,19 @@ int main(void)
              expected_image_pixel(0, 0, seed), expected_image_checksum(seed),
              bad_images == 0, bad_images);
       }
+      if (FG2_ROOT_ADDRESS_REUSE_DISTANCE_CONTROL == 1u ||
+          FG2_ROOT_ADDRESS_REUSE_DISTANCE_VARIANT == 1u) {
+         const uint32_t observed_checksum = checksum_words(readback_cpu, ELEMENTS);
+         const uint32_t behavior_seed =
+            observed_behavior_seed((const uint32_t *)readback_cpu);
+         LOG("FG2_ROOT_REUSE_DISTANCE phase=result arm=%s record=%u iteration=%u seed=%u pixel=0x%08x checksum=0x%08x expected_pixel=0x%08x expected_checksum=0x%08x observed_behavior_seed=%u behavior_seed_known=%u oracle_match=%u mismatches=%u fault_state=INSPECT_COMPLETE_STREAM",
+             FG2_ROOT_ADDRESS_REUSE_DISTANCE_VARIANT ? "variant" : "control",
+             iteration + 1u, iteration + 1u, seed,
+             ((uint32_t *)readback_cpu)[0], observed_checksum,
+             expected_image_pixel(0, 0, seed), expected_image_checksum(seed),
+             behavior_seed, behavior_seed != UINT32_MAX,
+             bad_images == 0, bad_images);
+      }
       if (bad_images) {
          failures++;
          uint32_t x = first_bad % IMAGE_W, y = first_bad / IMAGE_W;
@@ -886,6 +951,11 @@ int main(void)
       LOG("FG2_QMD_CONSTANT_CACHE phase=oracle_aggregate path=%s validations=%u/64 mismatched_iterations=%u fault_state=INSPECT_COMPLETE_STREAM",
           FG2_QMD_SHADER_CONSTANT_CACHE_INVALIDATE ? "invalidate" : "control",
           ITERATIONS - failures, failures);
+   if (FG2_ROOT_ADDRESS_REUSE_DISTANCE_CONTROL == 1u ||
+       FG2_ROOT_ADDRESS_REUSE_DISTANCE_VARIANT == 1u)
+      LOG("FG2_ROOT_REUSE_DISTANCE phase=oracle_aggregate arm=%s validations=%u/64 mismatched_iterations=%u fault_state=INSPECT_COMPLETE_STREAM",
+          FG2_ROOT_ADDRESS_REUSE_DISTANCE_VARIANT ? "variant" : "control",
+          ITERATIONS - failures, failures);
    if (failures == 0) {
       uint32_t final_seed = iteration_seed(ITERATIONS - 1u);
       LOG("RESULT PASS: %u/%u iterations exact; final checksum observed=0x%08x expected=0x%08x",
@@ -899,12 +969,18 @@ int main(void)
    }
 
 done:
-   if (pQueueWaitIdle && queue) pQueueWaitIdle(queue);
+   if (pQueueWaitIdle && queue)
+      teardown_queue_wait_complete = pQueueWaitIdle(queue) == VK_SUCCESS;
    if (FG2_QMD_SHADER_CONSTANT_CACHE_CONTROL == 1u ||
        FG2_QMD_SHADER_CONSTANT_CACHE_INVALIDATE == 1u)
       LOG("FG2_QMD_CONSTANT_CACHE phase=teardown path=%s queue_wait_complete=%u command_buffer_lifetime_complete=1 cleanup_begin=1 fault_state=INSPECT_COMPLETE_STREAM",
           FG2_QMD_SHADER_CONSTANT_CACHE_INVALIDATE ? "invalidate" : "control",
           queue != VK_NULL_HANDLE);
+   if (FG2_ROOT_ADDRESS_REUSE_DISTANCE_CONTROL == 1u ||
+       FG2_ROOT_ADDRESS_REUSE_DISTANCE_VARIANT == 1u)
+      LOG("FG2_ROOT_REUSE_DISTANCE phase=teardown arm=%s queue_wait_complete=%u command_buffer_lifetime_complete=%u cleanup_begin=1 fault_state=INSPECT_COMPLETE_STREAM",
+          FG2_ROOT_ADDRESS_REUSE_DISTANCE_VARIANT ? "variant" : "control",
+          teardown_queue_wait_complete, teardown_queue_wait_complete);
    if (pDestroyCommandPool && pool) pDestroyCommandPool(dev, pool, NULL);
    if (pDestroyPipeline && graphics_pipeline) pDestroyPipeline(dev, graphics_pipeline, NULL);
    if (pDestroyPipeline && pipeline) pDestroyPipeline(dev, pipeline, NULL);
@@ -932,6 +1008,10 @@ done:
        FG2_QMD_SHADER_CONSTANT_CACHE_INVALIDATE == 1u)
       LOG("FG2_QMD_CONSTANT_CACHE phase=teardown path=%s cleanup_complete=1 fault_state=INSPECT_COMPLETE_STREAM",
           FG2_QMD_SHADER_CONSTANT_CACHE_INVALIDATE ? "invalidate" : "control");
+   if (FG2_ROOT_ADDRESS_REUSE_DISTANCE_CONTROL == 1u ||
+       FG2_ROOT_ADDRESS_REUSE_DISTANCE_VARIANT == 1u)
+      LOG("FG2_ROOT_REUSE_DISTANCE phase=teardown arm=%s cleanup_complete=1 fault_state=INSPECT_COMPLETE_STREAM",
+          FG2_ROOT_ADDRESS_REUSE_DISTANCE_VARIANT ? "variant" : "control");
    LOG("=== done; log at sdmc:/nvk_render_compute.log ===");
    if (g_log) fclose(g_log);
    return failures ? 1 : (r != VK_SUCCESS ? 1 : 0);
