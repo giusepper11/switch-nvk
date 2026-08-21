@@ -62,13 +62,13 @@ direct `PCAS`. CPU-mapped equality is explicitly recorded as `gpu_visible=UNPROV
 
 | Artifact/input | SHA256 |
 |---|---|
-| control NRO | `39178721881fbd2cd8b1d37bd1139adb26c5fb3a204bda30f3f3246a0d4ac130` |
-| fresh-root NRO | `624fb2df9c80c9522c65071b7272f9b5d4445a25a829b0ef7834f2cd911a13ba` |
+| control NRO | `1b1bdedcc0529785f6c22f33dfa73aea76ffafa4fe65ff0f7895ef21be07355f` |
+| fresh-root NRO | `d0e8c3edfc2aa3d69142540855f35edf92a422400c9fb90f9b95152f50e432e0` |
 | `render_compute.vert` | `dbda7a3cbff7bd04e8514530d91c3a525a4369eee5cd87f84341ca2e2aaa7cd0` |
 | `render_compute.frag` | `14660d60798626e636d5b04593243d1c002f2cb8b2598baeec3a842bd281f235` |
 | `render_compute.comp` | `1060e03a1648afcedc4d4d3d64db891cbeb1b99ae1c45687997a65a096150f49` |
 | generated `tri_shaders.h` | `21b2d465433f85e46c400de74c2ff3c96b5ab0bd878aa027f5e221168773fa14` |
-| durable Mesa patch | `af0e859c723d1d6a91e708dc36e71831a26ad69b837905b12fbaa3edc54fe9d9` |
+| durable Mesa patch | `7e515c726856cfbd6f825dd5ee01a7caa863e943417b10b68a5afec5f23931fe` |
 
 These working-tree hashes are pre-commit provenance only and must be reproduced from the immutable
 experiment commit before hardware. Host evidence supports only `IMPLEMENTED_UNPROVEN`.

@@ -57,8 +57,8 @@
 
 ## 6. Freeze provenance and run the gated real-Tegra control
 
-- [ ] 6.1 Commit the exact experiment source, verify the revision is immutable and contains no unrelated changes, rebuild both artifacts from it, and reproduce the recorded artifact, durable-patch, and shader hashes.
-- [ ] 6.2 Perform a final source/artifact review confirming the exact causal difference: control selects the reused primary root, variant alternates root VAs, both alternate fresh QMD VAs, and all dependent QMD changes are confined to decoded root-address fields.
+- [x] 6.1 Commit the exact experiment source, verify the revision is immutable and contains no unrelated changes, rebuild both artifacts from it, and reproduce the recorded artifact, durable-patch, and shader hashes.
+- [x] 6.2 Perform a final source/artifact review confirming the exact causal difference: control selects the reused primary root, variant alternates root VAs, both alternate fresh QMD VAs, and all dependent QMD changes are confined to decoded root-address fields.
 - [ ] 6.3 Run only the control for all 64 iterations on the intended real Switch/Tegra configuration, retain the complete unfiltered combined stream, and inspect it before filtering for warnings, timeout, notifier/error-info data, or GPU faults.
 - [ ] 6.4 Require iteration 1 exact output, iterations 2-64 exact retained stale output, 0/63 selected-root transitions with ordinary root reuse, 63/63 QMD transitions, exact root/QMD copies, root-field attribution, 64/64 `PCAS` correlations, complete ordering, and no unexplained fault.
 - [ ] 6.5 If any control prerequisite fails, retain the evidence, classify the experiment `inconclusive`, do not run or interpret the variant, and stop without adding another intervention.

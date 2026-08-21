@@ -1837,7 +1837,7 @@ diff --git a/src/nouveau/vulkan/nvk_cmd_buffer.h b/src/nouveau/vulkan/nvk_cmd_bu
 @@ -181,0 +445,2 @@
 +            if (cbuf->type == NVK_CBUF_TYPE_ROOT_DESC)
 +               root_qmd_cbuf_pos = qmd_info.num_cbufs;
-@@ -191,0 +457,31 @@
+@@ -191,0 +457,40 @@
 +      uint32_t reference_qmd[64];
 +      memcpy(reference_qmd, qmd, sizeof(qmd));
 +      bool qmd_root_decode_match = true;
@@ -1850,15 +1850,24 @@ diff --git a/src/nouveau/vulkan/nvk_cmd_buffer.h b/src/nouveau/vulkan/nvk_cmd_bu
 +         const struct nak_qmd_cbuf_desc_layout root_layout =
 +            nak_get_qmd_cbuf_desc_layout(&pdev->info, root_cbuf_index);
 +         uint32_t selected_lo = 0, selected_hi = 0;
++         uint32_t reference_lo = 0, reference_hi = 0;
 +         const bool decode_ok = nvk_qmd_extract_bits(
 +            qmd, root_layout.addr_lo_start, root_layout.addr_lo_end,
 +            &selected_lo) && nvk_qmd_extract_bits(
 +            qmd, root_layout.addr_hi_start, root_layout.addr_hi_end,
 +            &selected_hi);
++         const bool reference_decode_ok = nvk_qmd_extract_bits(
++            reference_qmd, root_layout.addr_lo_start,
++            root_layout.addr_lo_end, &reference_lo) &&
++            nvk_qmd_extract_bits(reference_qmd, root_layout.addr_hi_start,
++                                 root_layout.addr_hi_end, &reference_hi);
 +         decoded_selected_root = (uint64_t)selected_lo |
 +                                 ((uint64_t)selected_hi << 32);
-+         qmd_root_decode_match = decode_ok &&
-+                                 decoded_selected_root == root_desc_addr;
++         const uint64_t decoded_reference_root =
++            (uint64_t)reference_lo | ((uint64_t)reference_hi << 32);
++         qmd_root_decode_match = decode_ok && reference_decode_ok &&
++                                 decoded_selected_root == root_desc_addr &&
++                                 decoded_reference_root == primary_root_addr;
 +         for (uint32_t bit = 0; bit < sizeof(qmd) * 8; bit++) {
 +            const bool root_bit =
 +               (bit >= root_layout.addr_lo_start && bit < root_layout.addr_lo_end) ||
@@ -1869,7 +1878,7 @@ diff --git a/src/nouveau/vulkan/nvk_cmd_buffer.h b/src/nouveau/vulkan/nvk_cmd_bu
 +               qmd_outside_root_mask_match = false;
 +         }
 +      }
-@@ -193,3 +489,226 @@
+@@ -193,3 +498,226 @@
 -      result = nvk_cmd_buffer_upload_data(cmd, qmd, sizeof(qmd), 0x100, &qmd_addr);
 -      if (unlikely(result != VK_SUCCESS))
 -         return result;
@@ -2099,26 +2108,26 @@ diff --git a/src/nouveau/vulkan/nvk_cmd_buffer.h b/src/nouveau/vulkan/nvk_cmd_bu
 +            nvk_qmd_upload_diag.previous_valid = false;
 +         }
 +      }
-@@ -201,0 +721,5 @@
+@@ -201,0 +730,5 @@
 +   if (detailed_trace)
 +      nvk_root_trace_log(
 +         "FG2_ROOT_DIAG phase=qmd_upload record=%u cmd=%p qmd_gpu_va=0x%016" PRIx64 " root_gpu_va=0x%016" PRIx64,
 +         trace.record, (void *)cmd, qmd_addr, root_desc_addr);
 +
-@@ -259,0 +784,6 @@
+@@ -259,0 +793,6 @@
 +   struct nvk_root_trace_record trace = {0};
 +   const bool trace_this = nvk_root_trace_get_record(cmd, &trace);
 +   const bool detailed_trace = trace_this && trace.record <= 2;
 +   static uint32_t dispatch_count;
 +   if (trace_this)
 +      dispatch_count++;
-@@ -262 +792 @@
+@@ -262 +801 @@
 -   uint64_t qmd_addr = 0;
 +   uint64_t qmd_addr = 0, root_desc_addr = 0;
-@@ -264 +794 @@
+@@ -264 +803 @@
 -                                          &qmd_addr, NULL);
 +                                          &qmd_addr, &root_desc_addr);
-@@ -282,0 +813,55 @@
+@@ -282,0 +822,55 @@
 +
 +   if (trace_this) {
 +      const uint32_t pcas = qmd_addr >> 8;
