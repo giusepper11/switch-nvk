@@ -19,16 +19,22 @@ mkdir -p "$OBJ"
 # FG-2 render -> sampled image -> compute -> storage image proof:
 #   APP=nvk_render_compute TITLE="NVK Render Compute" VERSION="0.61.0-chain1" bash winsys/build-nro.sh
 APP="${APP:-nvk_smoke}"
+OUTPUT="${OUTPUT:-$APP}"
 TITLE="${TITLE:-NVK Smoke}"
 VERSION="${VERSION:-0.32.0-fencecmdlist}"
-echo "=== building app=$APP -> /work/$APP.nro (title='$TITLE' ver=$VERSION) ==="
+ROOT_DIAG_LIMIT="${ROOT_DIAG_LIMIT:-0}"
+case "$ROOT_DIAG_LIMIT" in
+  0|1|2|3) ;;
+  *) echo "ROOT_DIAG_LIMIT must be 0, 1, 2, or 3" >&2; exit 2 ;;
+esac
+echo "=== building app=$APP -> /work/$OUTPUT.nro (title='$TITLE' ver=$VERSION) ==="
 
 ARCH="-march=armv8-a+crc+crypto -mtune=cortex-a57 -mtp=soft -fPIE"
 INC="-I$DKP/libnx/include -I/opt/switch-cross-include -Imesa-25/include -Imesa-25/src/nouveau/drm -Iwinsys -Icompat"
 DEFS="-D__SWITCH__ -D_GNU_SOURCE -D_DEFAULT_SOURCE -include /work/compat/switch_compat.h"
 
 echo "=== compiling app + shims ==="
-$GCC -c "winsys/smoke/$APP.c"     -o "$OBJ/$APP.o"           $ARCH -D__SWITCH__ -D_GNU_SOURCE -Imesa-25/include -I$DKP/libnx/include -O2 -Wall
+$GCC -c "winsys/smoke/$APP.c"     -o "$OBJ/$APP.o"           $ARCH -D__SWITCH__ -D_GNU_SOURCE -DFG2_ROOT_DIAG_LIMIT="$ROOT_DIAG_LIMIT" -Imesa-25/include -I$DKP/libnx/include -O2 -Wall
 $GCC -c winsys/drm_shim.c         -o "$OBJ/drm_shim.o"       $ARCH $DEFS $INC -O2 ${DRM_SHIM_DEBUG:+-DDRM_SHIM_DEBUG}
 $GCC -c winsys/switch_libc_shim.c -o "$OBJ/switch_libc_shim.o" $ARCH $DEFS $INC -O2
 $GCC -c compat/compat.c           -o "$OBJ/compat.o"         $ARCH $DEFS $INC -O2
@@ -62,10 +68,10 @@ $GXX -specs="$DKP/libnx/switch.specs" $ARCH \
   -Wl,--end-group
 
 echo "=== packaging NRO ==="
-"$STRIP" "$OBJ/$APP.elf" -o "$OBJ/$APP.stripped.elf"
-"$DKP/tools/bin/nacptool" --create "$TITLE" "switch-nvk" "$VERSION" "$OBJ/$APP.nacp"
-"$DKP/tools/bin/elf2nro" "$OBJ/$APP.elf" "/work/$APP.nro" \
-  --icon="$DKP/libnx/default_icon.jpg" --nacp="$OBJ/$APP.nacp"
+"$STRIP" "$OBJ/$APP.elf" -o "$OBJ/$OUTPUT.stripped.elf"
+"$DKP/tools/bin/nacptool" --create "$TITLE" "switch-nvk" "$VERSION" "$OBJ/$OUTPUT.nacp"
+"$DKP/tools/bin/elf2nro" "$OBJ/$APP.elf" "/work/$OUTPUT.nro" \
+  --icon="$DKP/libnx/default_icon.jpg" --nacp="$OBJ/$OUTPUT.nacp"
 
-echo "=== DONE -> /work/$APP.nro ==="
-ls -la "/work/$APP.nro"
+echo "=== DONE -> /work/$OUTPUT.nro ==="
+ls -la "/work/$OUTPUT.nro"

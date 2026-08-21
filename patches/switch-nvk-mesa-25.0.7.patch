@@ -1439,3 +1439,361 @@ index 0000000..3fabf7b
 +      wsi_device->wsi[VK_ICD_WSI_PLATFORM_VI] = NULL;
 +   }
 +}
+diff --git a/src/nouveau/vulkan/nvk_cmd_buffer.c b/src/nouveau/vulkan/nvk_cmd_buffer.c
+--- a/src/nouveau/vulkan/nvk_cmd_buffer.c
++++ b/src/nouveau/vulkan/nvk_cmd_buffer.c
+@@ -25,6 +25,88 @@
+ #include "nv_push_clb1c0.h"
+ #include "nv_push_clc597.h"
+ 
++#include <stdarg.h>
++#include <stdlib.h>
++
++#ifdef __SWITCH__
++extern void (*g_drm_shim_log_sink)(const char *);
++#endif
++
++static struct {
++   bool initialized;
++   uint32_t limit;
++   uint32_t push_count;
++   const struct nvk_cmd_buffer *cmd;
++   struct nvk_root_trace_record current;
++} nvk_root_trace;
++
++static uint32_t
++nvk_root_trace_limit(void)
++{
++   if (!nvk_root_trace.initialized) {
++      nvk_root_trace.initialized = true;
++#ifdef __SWITCH__
++      const char *value = getenv("NVK_ROOT_TRACE");
++      if (value != NULL) {
++         char *end = NULL;
++         unsigned long parsed = strtoul(value, &end, 10);
++         if (end != value && *end == '\0' && parsed <= 3)
++            nvk_root_trace.limit = parsed;
++      }
++#endif
++   }
++   return nvk_root_trace.limit;
++}
++
++void
++nvk_root_trace_log(const char *fmt, ...)
++{
++#ifdef __SWITCH__
++   if (nvk_root_trace_limit() == 0 || g_drm_shim_log_sink == NULL)
++      return;
++
++   char line[1024];
++   va_list ap;
++   va_start(ap, fmt);
++   int len = vsnprintf(line, sizeof(line) - 2, fmt, ap);
++   va_end(ap);
++   if (len < 0)
++      return;
++   size_t used = MIN2((size_t)len, sizeof(line) - 2);
++   line[used++] = '\n';
++   line[used] = '\0';
++   g_drm_shim_log_sink(line);
++#else
++   (void)fmt;
++#endif
++}
++
++bool
++nvk_root_trace_get_record(const struct nvk_cmd_buffer *cmd,
++                          struct nvk_root_trace_record *trace)
++{
++   if (nvk_root_trace_limit() == 0 || nvk_root_trace.cmd != cmd ||
++       nvk_root_trace.current.record == 0 ||
++       nvk_root_trace.current.record > nvk_root_trace.limit)
++      return false;
++
++   *trace = nvk_root_trace.current;
++   return true;
++}
++
++static bool
++nvk_root_trace_read_seed(const struct nvk_descriptor_state *desc,
++                         uint32_t offset, uint32_t size, uint32_t *seed)
++{
++   if (offset > NVK_MAX_PUSH_SIZE || size < sizeof(*seed) ||
++       sizeof(*seed) > NVK_MAX_PUSH_SIZE - offset)
++      return false;
++
++   const struct nvk_root_descriptor_table *root = (const void *)desc->root;
++   memcpy(seed, root->push + offset, sizeof(*seed));
++   return true;
++}
++
+ static void
+ nvk_descriptor_state_fini(struct nvk_cmd_buffer *cmd,
+                           struct nvk_descriptor_state *desc)
+@@ -905,6 +987,59 @@
+ 
+    if (pPushConstantsInfo->stageFlags & VK_SHADER_STAGE_COMPUTE_BIT)
+       nvk_push_constants(cmd, &cmd->state.cs.descriptors, pPushConstantsInfo);
++
++   if (nvk_root_trace_limit() > 0 &&
++       (pPushConstantsInfo->stageFlags & VK_SHADER_STAGE_COMPUTE_BIT)) {
++      const uint32_t record = ++nvk_root_trace.push_count;
++      if (record <= nvk_root_trace.limit) {
++         uint32_t input_seed = 0, gfx_seed = 0, cs_seed = 0;
++         const bool input_ok = pPushConstantsInfo->pValues != NULL &&
++                               pPushConstantsInfo->size >= sizeof(input_seed);
++         if (input_ok)
++            memcpy(&input_seed, pPushConstantsInfo->pValues, sizeof(input_seed));
++         const bool gfx_ok = nvk_root_trace_read_seed(
++            &cmd->state.gfx.descriptors, pPushConstantsInfo->offset,
++            pPushConstantsInfo->size, &gfx_seed);
++         const bool cs_ok = nvk_root_trace_read_seed(
++            &cmd->state.cs.descriptors, pPushConstantsInfo->offset,
++            pPushConstantsInfo->size, &cs_seed);
++         char input_text[32], gfx_text[32], cs_text[32];
++         if (input_ok)
++            snprintf(input_text, sizeof(input_text), "%u", input_seed);
++         else
++            snprintf(input_text, sizeof(input_text), "UNAVAILABLE");
++         if (gfx_ok)
++            snprintf(gfx_text, sizeof(gfx_text), "%u", gfx_seed);
++         else
++            snprintf(gfx_text, sizeof(gfx_text), "UNAVAILABLE");
++         if (cs_ok)
++            snprintf(cs_text, sizeof(cs_text), "%u", cs_seed);
++         else
++            snprintf(cs_text, sizeof(cs_text), "UNAVAILABLE");
++
++         nvk_root_trace.cmd = cmd;
++         nvk_root_trace.current = (struct nvk_root_trace_record) {
++            .record = record,
++            .push_offset = pPushConstantsInfo->offset,
++            .push_size = pPushConstantsInfo->size,
++         };
++         nvk_root_trace_log(
++            "FG2_ROOT_DIAG phase=push record=%u cmd=%p stages=0x%x root_push_offset=%zu offset=%u size=%u input_seed=%s gfx_desc=%p gfx_root=%p gfx_seed=%s cs_desc=%p cs_root=%p cs_seed=%s",
++            record, (void *)cmd, pPushConstantsInfo->stageFlags,
++            nvk_root_descriptor_offset(push), pPushConstantsInfo->offset,
++            pPushConstantsInfo->size,
++            input_text,
++            (void *)&cmd->state.gfx.descriptors,
++            (void *)cmd->state.gfx.descriptors.root,
++            gfx_text,
++            (void *)&cmd->state.cs.descriptors,
++            (void *)cmd->state.cs.descriptors.root,
++            cs_text);
++      } else {
++         nvk_root_trace.cmd = NULL;
++         nvk_root_trace.current = (struct nvk_root_trace_record) {0};
++      }
++   }
+ }
+ 
+ static struct nvk_push_descriptor_set *
+diff --git a/src/nouveau/vulkan/nvk_cmd_buffer.h b/src/nouveau/vulkan/nvk_cmd_buffer.h
+--- a/src/nouveau/vulkan/nvk_cmd_buffer.h
++++ b/src/nouveau/vulkan/nvk_cmd_buffer.h
+@@ -237,6 +237,17 @@
+    uint64_t tls_space_needed;
+ };
+ 
++/* Bounded, observation-only tracing for the FG-2 root-state diagnostic. */
++struct nvk_root_trace_record {
++   uint32_t record;
++   uint32_t push_offset;
++   uint32_t push_size;
++};
++
++bool nvk_root_trace_get_record(const struct nvk_cmd_buffer *cmd,
++                               struct nvk_root_trace_record *trace);
++void nvk_root_trace_log(const char *fmt, ...) PRINTFLIKE(1, 2);
++
+ VK_DEFINE_HANDLE_CASTS(nvk_cmd_buffer, vk.base, VkCommandBuffer,
+                        VK_OBJECT_TYPE_COMMAND_BUFFER)
+ 
+diff --git a/src/nouveau/vulkan/nvk_cmd_dispatch.c b/src/nouveau/vulkan/nvk_cmd_dispatch.c
+--- a/src/nouveau/vulkan/nvk_cmd_dispatch.c
++++ b/src/nouveau/vulkan/nvk_cmd_dispatch.c
+@@ -24,6 +24,8 @@
+ #include "nv_push_clc597.h"
+ #include "nv_push_clc6c0.h"
+ 
++#include <inttypes.h>
++
+ VkResult
+ nvk_push_dispatch_state_init(struct nvk_queue *queue, struct nv_push *p)
+ {
+@@ -100,6 +102,22 @@
+           shader->info.cs.local_size[2];
+ }
+ 
++static bool
++nvk_qmd_extract_bits(const uint32_t qmd[64], uint16_t start, uint16_t end,
++                     uint32_t *value)
++{
++   if (end <= start || end - start > 32 || end > 64 * 32)
++      return false;
++
++   uint32_t extracted = 0;
++   for (uint16_t bit = start; bit < end; bit++) {
++      const uint32_t set = (qmd[bit / 32] >> (bit % 32)) & 1;
++      extracted |= set << (bit - start);
++   }
++   *value = extracted;
++   return true;
++}
++
+ static void
+ nvk_flush_compute_state(struct nvk_cmd_buffer *cmd,
+                         uint32_t base_workgroup[3],
+@@ -143,8 +161,49 @@
+    if (unlikely(result != VK_SUCCESS))
+       return result;
+ 
++   struct nvk_root_trace_record trace = {0};
++   const bool trace_this =
++      nvk_root_trace_get_record(cmd, &trace) &&
++      desc == &cmd->state.cs.descriptors &&
++      root == (const void *)desc->root;
++   uint32_t source_seed = 0, mapped_seed = 0;
++   bool source_ok = false, mapped_ok = false;
++   static uint64_t previous_root_desc_addr;
++   if (trace_this && trace.push_offset <= NVK_MAX_PUSH_SIZE &&
++       trace.push_size >= sizeof(source_seed) &&
++       sizeof(source_seed) <= NVK_MAX_PUSH_SIZE - trace.push_offset) {
++      memcpy(&source_seed, root->push + trace.push_offset, sizeof(source_seed));
++      source_ok = true;
++   }
++
+    memcpy(root_desc_map, root, sizeof(*root));
+ 
++   if (source_ok) {
++      memcpy(&mapped_seed,
++             ((const struct nvk_root_descriptor_table *)root_desc_map)->push +
++                trace.push_offset,
++             sizeof(mapped_seed));
++      mapped_ok = true;
++   }
++   if (trace_this) {
++      char source_text[32], mapped_text[32];
++      if (source_ok)
++         snprintf(source_text, sizeof(source_text), "%u", source_seed);
++      else
++         snprintf(source_text, sizeof(source_text), "UNAVAILABLE");
++      if (mapped_ok)
++         snprintf(mapped_text, sizeof(mapped_text), "%u", mapped_seed);
++      else
++         snprintf(mapped_text, sizeof(mapped_text), "UNAVAILABLE");
++      nvk_root_trace_log(
++         "FG2_ROOT_DIAG phase=upload record=%u cmd=%p cs_desc=%p root_src=%p source_seed=%s root_map=%p mapped_seed=%s root_gpu_va=0x%016" PRIx64 " size=%zu alignment=%u reused_vs_previous=%u cpu_mapping_backing_gpu_va=1 gpu_visible=UNPROVEN",
++         trace.record, (void *)cmd, (void *)desc, (void *)root,
++         source_text, root_desc_map, mapped_text, root_desc_addr,
++         sizeof(*root), min_cbuf_alignment,
++         previous_root_desc_addr != 0 && previous_root_desc_addr == root_desc_addr);
++      previous_root_desc_addr = root_desc_addr;
++   }
++
+    uint64_t qmd_addr = 0;
+    if (shader != NULL) {
+       struct nak_qmd_info qmd_info = {
+@@ -158,12 +217,14 @@
+          },
+       };
+ 
++      uint32_t root_cbuf_index = UINT32_MAX;
+       assert(shader->cbuf_map.cbuf_count <= ARRAY_SIZE(qmd_info.cbufs));
+       for (uint32_t c = 0; c < shader->cbuf_map.cbuf_count; c++) {
+          const struct nvk_cbuf *cbuf = &shader->cbuf_map.cbufs[c];
+ 
+          struct nvk_buffer_address ba;
+          if (cbuf->type == NVK_CBUF_TYPE_ROOT_DESC) {
++            root_cbuf_index = c;
+             ba = (struct nvk_buffer_address) {
+                .base_addr = root_desc_addr,
+                .size = sizeof(*root),
+@@ -190,6 +251,40 @@
+       uint32_t qmd[64];
+       nak_fill_qmd(&pdev->info, &shader->info, &qmd_info, qmd, sizeof(qmd));
+ 
++      if (trace_this && root_cbuf_index != UINT32_MAX) {
++         const struct nak_qmd_cbuf_desc_layout layout =
++            nak_get_qmd_cbuf_desc_layout(&pdev->info, root_cbuf_index);
++         uint32_t addr_lo = 0, addr_hi = 0;
++         const bool lo_ok = nvk_qmd_extract_bits(
++            qmd, layout.addr_lo_start, layout.addr_lo_end, &addr_lo);
++         const bool hi_ok = nvk_qmd_extract_bits(
++            qmd, layout.addr_hi_start, layout.addr_hi_end, &addr_hi);
++         const bool raw_bounds_ok =
++            layout.addr_lo_start < layout.addr_lo_end &&
++            layout.addr_hi_start < layout.addr_hi_end &&
++            layout.addr_lo_end <= 64 * 32 &&
++            layout.addr_hi_end <= 64 * 32;
++         const uint32_t lo_dw0 = raw_bounds_ok ? layout.addr_lo_start / 32 : 0;
++         const uint32_t lo_dw1 = raw_bounds_ok ? (layout.addr_lo_end - 1) / 32 : 0;
++         const uint32_t hi_dw0 = raw_bounds_ok ? layout.addr_hi_start / 32 : 0;
++         const uint32_t hi_dw1 = raw_bounds_ok ? (layout.addr_hi_end - 1) / 32 : 0;
++         const uint64_t decoded = (uint64_t)addr_lo | ((uint64_t)addr_hi << 32);
++         nvk_root_trace_log(
++            "FG2_ROOT_DIAG phase=qmd record=%u cmd=%p root_cbuf_index=%u lo_bits=%u:%u lo_dw0=%u:0x%08x lo_dw1=%u:0x%08x hi_bits=%u:%u hi_dw0=%u:0x%08x hi_dw1=%u:0x%08x decoded_root_va=0x%016" PRIx64 " upload_root_va=0x%016" PRIx64 " upload_size=%zu address_match=%u decode_ok=%u",
++            trace.record, (void *)cmd, root_cbuf_index,
++            layout.addr_lo_start, layout.addr_lo_end,
++            lo_dw0, qmd[lo_dw0], lo_dw1, qmd[lo_dw1],
++            layout.addr_hi_start, layout.addr_hi_end,
++            hi_dw0, qmd[hi_dw0], hi_dw1, qmd[hi_dw1], decoded,
++            root_desc_addr, sizeof(*root),
++            lo_ok && hi_ok && raw_bounds_ok && decoded == root_desc_addr,
++            lo_ok && hi_ok && raw_bounds_ok);
++      } else if (trace_this) {
++         nvk_root_trace_log(
++            "FG2_ROOT_DIAG phase=qmd record=%u cmd=%p root_cbuf_index=UNAVAILABLE decode_ok=0",
++            trace.record, (void *)cmd);
++      }
++
+       result = nvk_cmd_buffer_upload_data(cmd, qmd, sizeof(qmd), 0x100, &qmd_addr);
+       if (unlikely(result != VK_SUCCESS))
+          return result;
+@@ -199,6 +294,11 @@
+    if (root_desc_addr_out != NULL)
+       *root_desc_addr_out = root_desc_addr;
+ 
++   if (trace_this)
++      nvk_root_trace_log(
++         "FG2_ROOT_DIAG phase=qmd_upload record=%u cmd=%p qmd_gpu_va=0x%016" PRIx64 " root_gpu_va=0x%016" PRIx64,
++         trace.record, (void *)cmd, qmd_addr, root_desc_addr);
++
+    return VK_SUCCESS;
+ }
+ 
+@@ -257,11 +357,16 @@
+ 
+    uint32_t base_workgroup[3] = { baseGroupX, baseGroupY, baseGroupZ };
+    uint32_t global_size[3] = { groupCountX, groupCountY, groupCountZ };
++   struct nvk_root_trace_record trace = {0};
++   const bool trace_this = nvk_root_trace_get_record(cmd, &trace);
++   static uint32_t dispatch_count;
++   if (trace_this)
++      dispatch_count++;
+    nvk_flush_compute_state(cmd, base_workgroup, global_size);
+ 
+-   uint64_t qmd_addr = 0;
++   uint64_t qmd_addr = 0, root_desc_addr = 0;
+    VkResult result = nvk_cmd_flush_cs_qmd(cmd, &cmd->state, global_size,
+-                                          &qmd_addr, NULL);
++                                          &qmd_addr, &root_desc_addr);
+    if (result != VK_SUCCESS) {
+       vk_command_buffer_set_error(&cmd->vk, result);
+       return;
+@@ -281,6 +386,12 @@
+    P_MTHD(p, NVA0C0, SEND_PCAS_A);
+    P_NVA0C0_SEND_PCAS_A(p, qmd_addr >> 8);
+ 
++   if (trace_this)
++      nvk_root_trace_log(
++         "FG2_ROOT_DIAG phase=dispatch record=%u cmd=%p order_match=%u qmd_gpu_va=0x%016" PRIx64 " pcas=0x%08" PRIx64 " root_gpu_va=0x%016" PRIx64,
++         trace.record, (void *)cmd, dispatch_count == trace.record,
++         qmd_addr, qmd_addr >> 8, root_desc_addr);
++
+    if (nvk_cmd_buffer_compute_cls(cmd) <= TURING_COMPUTE_A) {
+       P_IMMD(p, NVA0C0, SEND_SIGNALING_PCAS_B, {
+             .invalidate = INVALIDATE_TRUE,

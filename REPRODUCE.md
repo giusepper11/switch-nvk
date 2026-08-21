@@ -15,8 +15,8 @@ Run from the switch-nvk root:
 - **mesa-25/** — the patched Mesa source (the build source of truth):
   1. Download Mesa **25.0.7** source and extract to `mesa-25/`.
   2. `bash apply-patches.sh`  → applies `patches/switch-nvk-mesa-25.0.7.patch` (the COMPLETE Switch
-     patch: 24 files incl. the whole NWindow WSI `wsi_common_switch.c` + the swapchain-recreate
-     owner-transfer fix). Idempotent.
+     patch: 28 files incl. the whole NWindow WSI `wsi_common_switch.c`, the swapchain-recreate
+     owner-transfer fix, and the opt-in FG-2 root-state diagnostics). Idempotent.
 - **libc-switch/** — `git clone https://github.com/rust-lang/libc.git libc-switch`
 - **libdrm_nouveau/** — `git clone https://github.com/devkitPro/libdrm_nouveau.git`
 - **native-tools/**, **native-prefix/** — NOT cloned; produced by `build-native-tools.sh` (step 4).

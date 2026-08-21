@@ -40,6 +40,16 @@ extern void (*g_drm_shim_log_sink)(const char *);
 #define IMAGE_BYTES (ELEMENTS * 4u)
 #define ITERATIONS 64u
 
+#ifndef FG2_ROOT_DIAG_LIMIT
+#define FG2_ROOT_DIAG_LIMIT 0u
+#endif
+
+#if FG2_ROOT_DIAG_LIMIT > 0u
+#define FG2_BUILD_TAG "chain2-rootdiag1"
+#else
+#define FG2_BUILD_TAG "chain2"
+#endif
+
 static FILE *g_log;
 
 static void shim_log_sink(const char *s)
@@ -113,6 +123,26 @@ static uint32_t expected_image_checksum(uint32_t seed)
    return checksum_words(values, ELEMENTS);
 }
 
+static uint32_t observed_behavior_seed(const uint32_t *values)
+{
+   uint32_t found = UINT32_MAX;
+   for (uint32_t seed = 0; seed <= 255u; seed++) {
+      bool match = true;
+      for (uint32_t i = 0; i < ELEMENTS; i++) {
+         if (values[i] != expected_image_pixel(i % IMAGE_W, i / IMAGE_W, seed)) {
+            match = false;
+            break;
+         }
+      }
+      if (match) {
+         if (found != UINT32_MAX)
+            return UINT32_MAX;
+         found = seed;
+      }
+   }
+   return found;
+}
+
 int main(void)
 {
    VkInstance inst = VK_NULL_HANDLE;
@@ -160,7 +190,7 @@ int main(void)
    g_log = fopen("sdmc:/nvk_render_compute.log", "w");
    if (__nxlink_host.s_addr != 0 && R_SUCCEEDED(socketInitializeDefault()))
       nxlinkStdio();
-   LOG("=== NVK FG-2 render-compute image chain [BUILD chain2] ===");
+   LOG("=== NVK FG-2 render-compute image chain [BUILD %s] ===", FG2_BUILD_TAG);
    LOG("contract: graphics draw -> image A -> sampled compute -> image B -> readback; %ux%u RGBA8, %u iterations", 
        IMAGE_W, IMAGE_H, ITERATIONS);
    LOG("sentinels: image A=0x5a17c3e1 image B=0xa6d42b7f; seeds=(iteration*37+5)&255");
@@ -169,6 +199,10 @@ int main(void)
    setenv("NVK_I_WANT_A_BROKEN_VULKAN_DRIVER", "1", 1);
    setenv("MESA_SHADER_CACHE_DISABLE", "1", 1);
    setenv("MESA_LOG_FILE", "sdmc:/nvk_render_compute_mesa.log", 1);
+   if (FG2_ROOT_DIAG_LIMIT > 0u) {
+      char trace_limit[2] = { (char)('0' + FG2_ROOT_DIAG_LIMIT), '\0' };
+      setenv("NVK_ROOT_TRACE", trace_limit, 1);
+   }
 
    PFN_vkCreateInstance pCreateInstance =
       (PFN_vkCreateInstance)vk_icdGetInstanceProcAddr(NULL, "vkCreateInstance");
@@ -528,6 +562,9 @@ int main(void)
          .renderArea = { { 0, 0 }, { IMAGE_W, IMAGE_H } } };
       pCmdBeginRenderPass(cmd, &rp_begin, VK_SUBPASS_CONTENTS_INLINE);
       pCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, graphics_pipeline);
+      if (iteration < FG2_ROOT_DIAG_LIMIT)
+         LOG("FG2_ROOT_DIAG phase=marker record=%u iteration=%u expected_seed=%u cmd=%p",
+             iteration + 1u, iteration + 1u, seed, (void *)cmd);
       pCmdPushConstants(cmd, pipeline_layout,
                         VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_COMPUTE_BIT,
                         0, sizeof(seed), &seed);
@@ -586,6 +623,24 @@ int main(void)
       r = pQueueWaitIdle(queue);
       if (r != VK_SUCCESS) { LOG("FAIL iteration %u: wait/readback -> %d", iteration, r); goto done; }
       armDCacheFlush(readback_cpu, IMAGE_BYTES);
+
+      if (iteration < FG2_ROOT_DIAG_LIMIT) {
+         const uint32_t observed_checksum =
+            checksum_words(readback_cpu, ELEMENTS);
+         const uint32_t behavior_seed =
+            observed_behavior_seed((const uint32_t *)readback_cpu);
+         if (behavior_seed == UINT32_MAX) {
+            LOG("FG2_ROOT_DIAG phase=result record=%u iteration=%u expected_seed=%u cmd=%p observed_pixel0=0x%08x expected_pixel0=0x%08x observed_checksum=0x%08x expected_checksum=0x%08x observed_behavior_seed=UNKNOWN",
+                iteration + 1u, iteration + 1u, seed, (void *)cmd,
+                ((uint32_t *)readback_cpu)[0], expected_image_pixel(0, 0, seed),
+                observed_checksum, expected_image_checksum(seed));
+         } else {
+            LOG("FG2_ROOT_DIAG phase=result record=%u iteration=%u expected_seed=%u cmd=%p observed_pixel0=0x%08x expected_pixel0=0x%08x observed_checksum=0x%08x expected_checksum=0x%08x observed_behavior_seed=%u",
+                iteration + 1u, iteration + 1u, seed, (void *)cmd,
+                ((uint32_t *)readback_cpu)[0], expected_image_pixel(0, 0, seed),
+                observed_checksum, expected_image_checksum(seed), behavior_seed);
+         }
+      }
 
       uint32_t bad_images = 0, first_bad = UINT32_MAX;
       for (uint32_t i = 0; i < ELEMENTS; i++) {
