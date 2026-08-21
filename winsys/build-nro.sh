@@ -30,6 +30,8 @@ QMD_ADDRESS_CONTROL="${QMD_ADDRESS_CONTROL:-0}"
 QMD_ADDRESS_FRESH="${QMD_ADDRESS_FRESH:-0}"
 ROOT_ADDRESS_CONTROL="${ROOT_ADDRESS_CONTROL:-0}"
 ROOT_ADDRESS_FRESH="${ROOT_ADDRESS_FRESH:-0}"
+QMD_SHADER_CONSTANT_CACHE_CONTROL="${QMD_SHADER_CONSTANT_CACHE_CONTROL:-0}"
+QMD_SHADER_CONSTANT_CACHE_INVALIDATE="${QMD_SHADER_CONSTANT_CACHE_INVALIDATE:-0}"
 case "$ROOT_DIAG_LIMIT" in
   0|1|2|3|64) ;;
   *) echo "ROOT_DIAG_LIMIT must be 0, 1, 2, 3, or 64" >&2; exit 2 ;;
@@ -70,6 +72,18 @@ if { [ "$ROOT_ADDRESS_CONTROL" = 1 ] || [ "$ROOT_ADDRESS_FRESH" = 1 ]; } &&
      [ "$QMD_ADDRESS_FRESH" = 1 ]; }; then
   echo "root address experiment excludes root-cache and QMD experiments" >&2; exit 2
 fi
+case "$QMD_SHADER_CONSTANT_CACHE_CONTROL" in 0|1) ;; *) echo "QMD_SHADER_CONSTANT_CACHE_CONTROL must be 0 or 1" >&2; exit 2 ;; esac
+case "$QMD_SHADER_CONSTANT_CACHE_INVALIDATE" in 0|1) ;; *) echo "QMD_SHADER_CONSTANT_CACHE_INVALIDATE must be 0 or 1" >&2; exit 2 ;; esac
+if [ "$QMD_SHADER_CONSTANT_CACHE_CONTROL" = 1 ] && [ "$QMD_SHADER_CONSTANT_CACHE_INVALIDATE" = 1 ]; then
+  echo "QMD shader constant-cache selectors are mutually exclusive" >&2; exit 2
+fi
+if { [ "$QMD_SHADER_CONSTANT_CACHE_CONTROL" = 1 ] || [ "$QMD_SHADER_CONSTANT_CACHE_INVALIDATE" = 1 ]; } &&
+   { [ "$ROOT_UPLOAD_CACHE_FLUSH" = 1 ] || [ "$QMD_UPLOAD_IDENTITY" = 1 ] ||
+     [ "$QMD_UPLOAD_CACHE_FLUSH" = 1 ] || [ "$QMD_ADDRESS_CONTROL" = 1 ] ||
+     [ "$QMD_ADDRESS_FRESH" = 1 ] || [ "$ROOT_ADDRESS_CONTROL" = 1 ] ||
+     [ "$ROOT_ADDRESS_FRESH" = 1 ]; }; then
+  echo "QMD shader constant-cache experiment excludes every historical intervention selector" >&2; exit 2
+fi
 echo "=== building app=$APP -> /work/$OUTPUT.nro (title='$TITLE' ver=$VERSION) ==="
 
 ARCH="-march=armv8-a+crc+crypto -mtune=cortex-a57 -mtp=soft -fPIE"
@@ -77,7 +91,7 @@ INC="-I$DKP/libnx/include -I/opt/switch-cross-include -Imesa-25/include -Imesa-2
 DEFS="-D__SWITCH__ -D_GNU_SOURCE -D_DEFAULT_SOURCE -include /work/compat/switch_compat.h"
 
 echo "=== compiling app + shims ==="
-$GCC -c "winsys/smoke/$APP.c"     -o "$OBJ/$APP.o"           $ARCH -D__SWITCH__ -D_GNU_SOURCE -DFG2_ROOT_DIAG_LIMIT="$ROOT_DIAG_LIMIT" -DFG2_ROOT_UPLOAD_CACHE_FLUSH="$ROOT_UPLOAD_CACHE_FLUSH" -DFG2_QMD_UPLOAD_IDENTITY="$QMD_UPLOAD_IDENTITY" -DFG2_QMD_UPLOAD_CACHE_FLUSH="$QMD_UPLOAD_CACHE_FLUSH" -DFG2_QMD_ADDRESS_CONTROL="$QMD_ADDRESS_CONTROL" -DFG2_QMD_ADDRESS_FRESH="$QMD_ADDRESS_FRESH" -DFG2_ROOT_ADDRESS_CONTROL="$ROOT_ADDRESS_CONTROL" -DFG2_ROOT_ADDRESS_FRESH="$ROOT_ADDRESS_FRESH" -Imesa-25/include -I$DKP/libnx/include -O2 -Wall
+$GCC -c "winsys/smoke/$APP.c"     -o "$OBJ/$APP.o"           $ARCH -D__SWITCH__ -D_GNU_SOURCE -DFG2_ROOT_DIAG_LIMIT="$ROOT_DIAG_LIMIT" -DFG2_ROOT_UPLOAD_CACHE_FLUSH="$ROOT_UPLOAD_CACHE_FLUSH" -DFG2_QMD_UPLOAD_IDENTITY="$QMD_UPLOAD_IDENTITY" -DFG2_QMD_UPLOAD_CACHE_FLUSH="$QMD_UPLOAD_CACHE_FLUSH" -DFG2_QMD_ADDRESS_CONTROL="$QMD_ADDRESS_CONTROL" -DFG2_QMD_ADDRESS_FRESH="$QMD_ADDRESS_FRESH" -DFG2_ROOT_ADDRESS_CONTROL="$ROOT_ADDRESS_CONTROL" -DFG2_ROOT_ADDRESS_FRESH="$ROOT_ADDRESS_FRESH" -DFG2_QMD_SHADER_CONSTANT_CACHE_CONTROL="$QMD_SHADER_CONSTANT_CACHE_CONTROL" -DFG2_QMD_SHADER_CONSTANT_CACHE_INVALIDATE="$QMD_SHADER_CONSTANT_CACHE_INVALIDATE" -Imesa-25/include -I$DKP/libnx/include -O2 -Wall
 $GCC -c winsys/drm_shim.c         -o "$OBJ/drm_shim.o"       $ARCH $DEFS $INC -O2 ${DRM_SHIM_DEBUG:+-DDRM_SHIM_DEBUG}
 $GCC -c winsys/switch_libc_shim.c -o "$OBJ/switch_libc_shim.o" $ARCH $DEFS $INC -O2
 $GCC -c compat/compat.c           -o "$OBJ/compat.o"         $ARCH $DEFS $INC -O2

@@ -88,14 +88,12 @@ executed all 64 iterations on real hardware, but only the first iteration matche
 same exact stale compute-seed signature. The shared-layout/cache-interaction hypothesis is
 `REJECTED`. The completed two-slot QMD-address experiment produced
 `specific_qmd_address_change_insufficient`: 63/63 adjacent QMD-address transitions retained the
-exact stale signature. The immediate discriminating boundary is now whether changing only the
-compute-root GPU VA relative to the preceding dispatch changes GPU consumption while fresh-QMD
-behavior is held constant. FG-2 remains `BLOCKED` pending that separately controlled hardware
-experiment. The completed root-address pair produced `behavior_changed_unresolved`: the valid
+exact stale signature. The completed root-address pair produced `behavior_changed_unresolved`: the valid
 control retained the original stale signature, while the 63/63 fresh-root variant passed iterations
 1-2 and then retained iteration-2/seed-42 output through iteration 64. This is not a production fix;
-the next work must isolate why alternating roots advanced consumption once but not thereafter in a
-separate smaller change.
+the current separately controlled discriminator changes only QMD v0.6
+`INVALIDATE_SHADER_CONSTANT_CACHE` bit 255 while preserving that exact A/B-root and X/Y-QMD
+schedule. FG-2 remains `BLOCKED`; host implementation does not establish GPU consumption.
 
 ---
 
