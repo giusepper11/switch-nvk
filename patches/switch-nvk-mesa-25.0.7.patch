@@ -1563,13 +1563,9 @@ diff --git a/src/nouveau/vulkan/nvk_cmd_buffer.h b/src/nouveau/vulkan/nvk_cmd_bu
  VK_DEFINE_HANDLE_CASTS(nvk_cmd_buffer, vk.base, VkCommandBuffer,
                         VK_OBJECT_TYPE_COMMAND_BUFFER)
  
-diff --git a/src/nouveau/vulkan/nvk_cmd_dispatch.c b/src/nouveau/vulkan/nvk_cmd_dispatch.c
 --- a/src/nouveau/vulkan/nvk_cmd_dispatch.c
 +++ b/src/nouveau/vulkan/nvk_cmd_dispatch.c
-@@ -24,6 +24,102 @@
- #include "nv_push_clc597.h"
- #include "nv_push_clc6c0.h"
- 
+@@ -26,0 +27,117 @@
 +#include <inttypes.h>
 +#include <stdlib.h>
 +#include <string.h>
@@ -1592,6 +1588,8 @@ diff --git a/src/nouveau/vulkan/nvk_cmd_dispatch.c b/src/nouveau/vulkan/nvk_cmd_
 +   bool cache_enabled;
 +   bool address_control_enabled;
 +   bool address_fresh_enabled;
++   bool root_address_control_enabled;
++   bool root_address_fresh_enabled;
 +   const struct nvk_cmd_buffer *cmd;
 +   uint8_t first_qmd[256];
 +   uint8_t previous_qmd[256];
@@ -1604,6 +1602,11 @@ diff --git a/src/nouveau/vulkan/nvk_cmd_dispatch.c b/src/nouveau/vulkan/nvk_cmd_
 +   uint32_t previous_equal_count;
 +   uint32_t fresh_transition_count;
 +   uint32_t dispatch_match_count;
++   uint32_t root_exact_copy_count;
++   uint32_t alternate_root_exact_copy_count;
++   uint32_t root_fresh_transition_count;
++   uint32_t root_decode_match_count;
++   uint32_t qmd_outside_mask_match_count;
 +   bool previous_valid;
 +   bool first_valid;
 +} nvk_qmd_upload_diag;
@@ -1620,6 +1623,8 @@ diff --git a/src/nouveau/vulkan/nvk_cmd_dispatch.c b/src/nouveau/vulkan/nvk_cmd_
 +   const char *cache = getenv("NVK_QMD_UPLOAD_CACHE_FLUSH");
 +   const char *address_control = getenv("NVK_QMD_ADDRESS_CONTROL");
 +   const char *address_fresh = getenv("NVK_QMD_ADDRESS_FRESH");
++   const char *root_address_control = getenv("NVK_ROOT_ADDRESS_CONTROL");
++   const char *root_address_fresh = getenv("NVK_ROOT_ADDRESS_FRESH");
 +   nvk_qmd_upload_diag.identity_enabled =
 +      identity != NULL && strcmp(identity, "1") == 0;
 +   nvk_qmd_upload_diag.cache_enabled =
@@ -1632,10 +1637,22 @@ diff --git a/src/nouveau/vulkan/nvk_cmd_dispatch.c b/src/nouveau/vulkan/nvk_cmd_
 +   const bool cache_selector_active =
 +      nvk_qmd_upload_diag.cache_enabled ||
 +      (root_cache != NULL && strcmp(root_cache, "1") == 0);
++   const bool root_control_requested = root_address_control != NULL &&
++      strcmp(root_address_control, "1") == 0;
++   const bool root_fresh_requested = root_address_fresh != NULL &&
++      strcmp(root_address_fresh, "1") == 0;
++   const bool qmd_selector_active = nvk_qmd_upload_diag.identity_enabled ||
++      nvk_qmd_upload_diag.cache_enabled || control_requested || fresh_requested;
 +   nvk_qmd_upload_diag.address_control_enabled =
 +      control_requested && !fresh_requested && !cache_selector_active;
 +   nvk_qmd_upload_diag.address_fresh_enabled =
 +      fresh_requested && !control_requested && !cache_selector_active;
++   nvk_qmd_upload_diag.root_address_control_enabled =
++      root_control_requested && !root_fresh_requested &&
++      !cache_selector_active && !qmd_selector_active;
++   nvk_qmd_upload_diag.root_address_fresh_enabled =
++      root_fresh_requested && !root_control_requested &&
++      !cache_selector_active && !qmd_selector_active;
 +#endif
 +}
 +
@@ -1666,13 +1683,7 @@ diff --git a/src/nouveau/vulkan/nvk_cmd_dispatch.c b/src/nouveau/vulkan/nvk_cmd_
 +   return nvk_root_upload_cache_flush.enabled;
 +}
 +
- VkResult
- nvk_push_dispatch_state_init(struct nvk_queue *queue, struct nv_push *p)
- {
-@@ -100,6 +196,22 @@
-           shader->info.cs.local_size[2];
- }
- 
+@@ -102,0 +220,16 @@
 +static bool
 +nvk_qmd_extract_bits(const uint32_t qmd[64], uint16_t start, uint16_t end,
 +                     uint32_t *value)
@@ -1689,13 +1700,7 @@ diff --git a/src/nouveau/vulkan/nvk_cmd_dispatch.c b/src/nouveau/vulkan/nvk_cmd_
 +   return true;
 +}
 +
- static void
- nvk_flush_compute_state(struct nvk_cmd_buffer *cmd,
-                         uint32_t base_workgroup[3],
-@@ -143,8 +255,93 @@
-    if (unlikely(result != VK_SUCCESS))
-       return result;
- 
+@@ -145,0 +279,17 @@
 +   const bool direct_compute_root =
 +      desc == &cmd->state.cs.descriptors &&
 +      root == (const void *)desc->root;
@@ -1713,8 +1718,10 @@ diff --git a/src/nouveau/vulkan/nvk_cmd_dispatch.c b/src/nouveau/vulkan/nvk_cmd_
 +      source_ok = true;
 +   }
 +
-    memcpy(root_desc_map, root, sizeof(*root));
- 
+@@ -146,0 +297,70 @@
++   const uint64_t primary_root_addr = root_desc_addr;
++   void *const primary_root_map = root_desc_map;
++
 +   if (source_ok) {
 +      memcpy(&mapped_seed,
 +             ((const struct nvk_root_descriptor_table *)root_desc_map)->push +
@@ -1782,30 +1789,90 @@ diff --git a/src/nouveau/vulkan/nvk_cmd_dispatch.c b/src/nouveau/vulkan/nvk_cmd_
 +         root_desc_addr, sizeof(*root), min_cbuf_alignment,
 +         cache_flush_enabled, reuse, cache_action, order_match);
 +   }
+@@ -160,0 +381,42 @@
++      nvk_qmd_upload_diag_init();
++      const bool qmd_address_experiment = trace_this &&
++         (nvk_qmd_upload_diag.address_control_enabled ||
++          nvk_qmd_upload_diag.address_fresh_enabled);
++      const bool root_address_experiment = trace_this &&
++         (nvk_qmd_upload_diag.root_address_control_enabled ||
++          nvk_qmd_upload_diag.root_address_fresh_enabled);
++      const bool two_qmd_slots = qmd_address_experiment || root_address_experiment;
++      void *primary_map = NULL, *secondary_map = NULL;
++      uint64_t primary_addr = 0, secondary_addr = 0;
++      result = nvk_cmd_buffer_upload_alloc(cmd, 256, 0x100,
++                                           &primary_addr, &primary_map);
++      if (unlikely(result != VK_SUCCESS))
++         return result;
++      if (two_qmd_slots) {
++         result = nvk_cmd_buffer_upload_alloc(cmd, 256, 0x100,
++                                              &secondary_addr, &secondary_map);
++         if (unlikely(result != VK_SUCCESS))
++            return result;
++      }
 +
-    uint64_t qmd_addr = 0;
-    if (shader != NULL) {
-       struct nak_qmd_info qmd_info = {
-@@ -158,12 +355,14 @@
-          },
-       };
- 
++      void *alternate_root_map = NULL;
++      uint64_t alternate_root_addr = 0;
++      if (root_address_experiment) {
++         result = nvk_cmd_buffer_upload_alloc(cmd, sizeof(*root),
++                                              min_cbuf_alignment,
++                                              &alternate_root_addr,
++                                              &alternate_root_map);
++         if (unlikely(result != VK_SUCCESS))
++            return result;
++         memcpy(alternate_root_map, root, sizeof(*root));
++         const bool select_alternate =
++            nvk_qmd_upload_diag.root_address_fresh_enabled &&
++            (trace.record % 2) == 0;
++         if (select_alternate) {
++            root_desc_addr = alternate_root_addr;
++            root_desc_map = alternate_root_map;
++         }
++      }
++
 +      uint32_t root_cbuf_index = UINT32_MAX;
-       assert(shader->cbuf_map.cbuf_count <= ARRAY_SIZE(qmd_info.cbufs));
-       for (uint32_t c = 0; c < shader->cbuf_map.cbuf_count; c++) {
-          const struct nvk_cbuf *cbuf = &shader->cbuf_map.cbufs[c];
- 
-          struct nvk_buffer_address ba;
-          if (cbuf->type == NVK_CBUF_TYPE_ROOT_DESC) {
++      uint32_t root_qmd_cbuf_pos = UINT32_MAX;
+@@ -166,0 +429 @@
 +            root_cbuf_index = c;
-             ba = (struct nvk_buffer_address) {
-                .base_addr = root_desc_addr,
-                .size = sizeof(*root),
-@@ -190,15 +389,211 @@
-       uint32_t qmd[64];
-       nak_fill_qmd(&pdev->info, &shader->info, &qmd_info, qmd, sizeof(qmd));
- 
+@@ -181,0 +445,2 @@
++            if (cbuf->type == NVK_CBUF_TYPE_ROOT_DESC)
++               root_qmd_cbuf_pos = qmd_info.num_cbufs;
+@@ -191,0 +457,31 @@
++      uint32_t reference_qmd[64];
++      memcpy(reference_qmd, qmd, sizeof(qmd));
++      bool qmd_root_decode_match = true;
++      bool qmd_outside_root_mask_match = true;
++      uint64_t decoded_selected_root = root_desc_addr;
++      if (root_address_experiment && root_qmd_cbuf_pos != UINT32_MAX) {
++         qmd_info.cbufs[root_qmd_cbuf_pos].addr = primary_root_addr;
++         nak_fill_qmd(&pdev->info, &shader->info, &qmd_info,
++                      reference_qmd, sizeof(reference_qmd));
++         const struct nak_qmd_cbuf_desc_layout root_layout =
++            nak_get_qmd_cbuf_desc_layout(&pdev->info, root_cbuf_index);
++         uint32_t selected_lo = 0, selected_hi = 0;
++         const bool decode_ok = nvk_qmd_extract_bits(
++            qmd, root_layout.addr_lo_start, root_layout.addr_lo_end,
++            &selected_lo) && nvk_qmd_extract_bits(
++            qmd, root_layout.addr_hi_start, root_layout.addr_hi_end,
++            &selected_hi);
++         decoded_selected_root = (uint64_t)selected_lo |
++                                 ((uint64_t)selected_hi << 32);
++         qmd_root_decode_match = decode_ok &&
++                                 decoded_selected_root == root_desc_addr;
++         for (uint32_t bit = 0; bit < sizeof(qmd) * 8; bit++) {
++            const bool root_bit =
++               (bit >= root_layout.addr_lo_start && bit < root_layout.addr_lo_end) ||
++               (bit >= root_layout.addr_hi_start && bit < root_layout.addr_hi_end);
++            if (!root_bit &&
++                (((qmd[bit / 32] ^ reference_qmd[bit / 32]) >>
++                  (bit % 32)) & 1))
++               qmd_outside_root_mask_match = false;
++         }
++      }
+@@ -193,3 +489,226 @@
 -      result = nvk_cmd_buffer_upload_data(cmd, qmd, sizeof(qmd), 0x100, &qmd_addr);
+-      if (unlikely(result != VK_SUCCESS))
+-         return result;
 +      if (detailed_trace && root_cbuf_index != UINT32_MAX) {
 +         const struct nak_qmd_cbuf_desc_layout layout =
 +            nak_get_qmd_cbuf_desc_layout(&pdev->info, root_cbuf_index);
@@ -1840,32 +1907,13 @@ diff --git a/src/nouveau/vulkan/nvk_cmd_dispatch.c b/src/nouveau/vulkan/nvk_cmd_
 +            trace.record, (void *)cmd);
 +      }
 +
-+      nvk_qmd_upload_diag_init();
-+      const bool address_experiment = trace_this &&
-+         (nvk_qmd_upload_diag.address_control_enabled ||
-+          nvk_qmd_upload_diag.address_fresh_enabled);
-+      void *primary_map = NULL;
-+      uint64_t primary_addr = 0;
-+      result = nvk_cmd_buffer_upload_alloc(cmd, sizeof(qmd), 0x100,
-+                                           &primary_addr, &primary_map);
-       if (unlikely(result != VK_SUCCESS))
-          return result;
-+      void *secondary_map = NULL;
-+      uint64_t secondary_addr = 0;
-+      if (address_experiment) {
-+         result = nvk_cmd_buffer_upload_alloc(cmd, sizeof(qmd), 0x100,
-+                                              &secondary_addr, &secondary_map);
-+         if (unlikely(result != VK_SUCCESS))
-+            return result;
-+      }
-+
-+      const bool slot_valid = !address_experiment ||
++      const bool slot_valid = !two_qmd_slots ||
 +         (primary_map != NULL && secondary_map != NULL &&
 +          (primary_addr & 0xff) == 0 && (secondary_addr & 0xff) == 0 &&
 +          primary_addr != secondary_addr);
-+      const bool select_secondary = address_experiment &&
-+         nvk_qmd_upload_diag.address_fresh_enabled &&
-+         (trace.record % 2) == 0;
++      const bool select_secondary = two_qmd_slots &&
++         ((qmd_address_experiment && nvk_qmd_upload_diag.address_fresh_enabled) ||
++          root_address_experiment) && (trace.record % 2) == 0;
 +      void *qmd_map = select_secondary ? secondary_map : primary_map;
 +      qmd_addr = select_secondary ? secondary_addr : primary_addr;
 +      if (unlikely(!slot_valid || qmd_map == NULL))
@@ -1873,7 +1921,7 @@ diff --git a/src/nouveau/vulkan/nvk_cmd_dispatch.c b/src/nouveau/vulkan/nvk_cmd_
 +      memcpy(qmd_map, qmd, sizeof(qmd));
 +
 +      if (trace_this && (nvk_qmd_upload_diag.identity_enabled ||
-+                         address_experiment)) {
++                         qmd_address_experiment || root_address_experiment)) {
 +         if (nvk_qmd_upload_diag.cmd != cmd) {
 +            nvk_qmd_upload_diag.cmd = cmd;
 +            nvk_qmd_upload_diag.previous_valid = false;
@@ -1884,6 +1932,11 @@ diff --git a/src/nouveau/vulkan/nvk_cmd_dispatch.c b/src/nouveau/vulkan/nvk_cmd_
 +            nvk_qmd_upload_diag.previous_equal_count = 0;
 +            nvk_qmd_upload_diag.fresh_transition_count = 0;
 +            nvk_qmd_upload_diag.dispatch_match_count = 0;
++            nvk_qmd_upload_diag.root_exact_copy_count = 0;
++            nvk_qmd_upload_diag.alternate_root_exact_copy_count = 0;
++            nvk_qmd_upload_diag.root_fresh_transition_count = 0;
++            nvk_qmd_upload_diag.root_decode_match_count = 0;
++            nvk_qmd_upload_diag.qmd_outside_mask_match_count = 0;
 +         }
 +
 +         const uint64_t source_hash = nvk_qmd_fnv1a64(qmd, sizeof(qmd));
@@ -1960,7 +2013,7 @@ diff --git a/src/nouveau/vulkan/nvk_cmd_dispatch.c b/src/nouveau/vulkan/nvk_cmd_
 +               strcmp(cache_action, "invoked") == 0 ? sizeof(qmd) : 0,
 +               root_desc_addr, order_match);
 +
-+         if (address_experiment) {
++         if (qmd_address_experiment) {
 +            nvk_root_trace_log(
 +               "FG2_QMD_ADDRESS phase=correlation path=%s record=%u iteration=%u seed=%u selector_control=%u selector_fresh=%u root_source_seed=%u root_mapped_seed=%u root_gpu_va=0x%016" PRIx64 " previous_root_gpu_va=0x%016" PRIx64 " root_reuse=%u qmd_source_hash=0x%016" PRIx64 " qmd_mapped_hash=0x%016" PRIx64 " source_map_match=%u first_equal=%u previous_equal=%u primary_qmd_gpu_va=0x%016" PRIx64 " secondary_qmd_gpu_va=0x%016" PRIx64 " selected_qmd_gpu_va=0x%016" PRIx64 " previous_qmd_gpu_va=0x%016" PRIx64 " fresh=%u slot_valid=%u order_match=%u addresses_may_recur_after_one_dispatch=1",
 +               nvk_qmd_upload_diag.address_fresh_enabled ? "fresh" : "control",
@@ -1984,6 +2037,52 @@ diff --git a/src/nouveau/vulkan/nvk_cmd_dispatch.c b/src/nouveau/vulkan/nvk_cmd_
 +                     mapped[i + 4], mapped[i + 5], mapped[i + 6], mapped[i + 7]);
 +            }
 +         }
++         if (root_address_experiment) {
++            const bool primary_root_match =
++               memcmp(root, primary_root_map, sizeof(*root)) == 0;
++            const bool alternate_root_match =
++               memcmp(root, alternate_root_map, sizeof(*root)) == 0;
++            const bool selected_root_match =
++               memcmp(root, root_desc_map, sizeof(*root)) == 0;
++            const bool root_fresh = has_prior &&
++               nvk_qmd_upload_diag.previous_root_addr != root_desc_addr;
++            if (primary_root_match)
++               nvk_qmd_upload_diag.root_exact_copy_count++;
++            if (alternate_root_match)
++               nvk_qmd_upload_diag.alternate_root_exact_copy_count++;
++            if (root_fresh)
++               nvk_qmd_upload_diag.root_fresh_transition_count++;
++            if (qmd_root_decode_match)
++               nvk_qmd_upload_diag.root_decode_match_count++;
++            if (qmd_outside_root_mask_match)
++               nvk_qmd_upload_diag.qmd_outside_mask_match_count++;
++            nvk_root_trace_log(
++               "FG2_ROOT_ADDRESS phase=correlation path=%s record=%u iteration=%u seed=%u selector_control=%u selector_fresh=%u root_source_hash=0x%016" PRIx64 " primary_root_gpu_va=0x%016" PRIx64 " alternate_root_gpu_va=0x%016" PRIx64 " previous_root_gpu_va=0x%016" PRIx64 " selected_root_gpu_va=0x%016" PRIx64 " root_fresh=%u primary_copy_match=%u alternate_copy_match=%u selected_copy_match=%u decoded_root_gpu_va=0x%016" PRIx64 " decode_match=%u qmd_outside_root_mask_match=%u qmd_source_hash=0x%016" PRIx64 " qmd_mapped_hash=0x%016" PRIx64 " qmd_copy_match=%u primary_qmd_gpu_va=0x%016" PRIx64 " secondary_qmd_gpu_va=0x%016" PRIx64 " previous_qmd_gpu_va=0x%016" PRIx64 " selected_qmd_gpu_va=0x%016" PRIx64 " qmd_fresh=%u footprint=4608 remaining=60928 same_bo=%u order_match=%u gpu_visible=UNPROVEN addresses_may_recur_after_one_dispatch=1",
++               nvk_qmd_upload_diag.root_address_fresh_enabled ? "fresh" : "control",
++               trace.record, trace.record, source_seed,
++               nvk_qmd_upload_diag.root_address_control_enabled,
++               nvk_qmd_upload_diag.root_address_fresh_enabled,
++               nvk_qmd_fnv1a64(root, sizeof(*root)), primary_root_addr,
++               alternate_root_addr, nvk_qmd_upload_diag.previous_root_addr,
++               root_desc_addr, root_fresh, primary_root_match,
++               alternate_root_match, selected_root_match,
++               decoded_selected_root, qmd_root_decode_match,
++               qmd_outside_root_mask_match, source_hash, mapped_hash,
++               source_map_match, primary_addr, secondary_addr, previous_addr,
++               qmd_addr, address_fresh,
++               alternate_root_addr - primary_root_addr == 0xa00,
++               order_match);
++            if (trace.record == 1 ||
++                (trace.record == 2 && root_desc_addr == alternate_root_addr)) {
++               for (uint32_t i = 0; i < 64; i += 8)
++                  nvk_root_trace_log(
++                     "FG2_ROOT_ADDRESS phase=qmd_payload record=%u dword=%u reference=%08x,%08x,%08x,%08x,%08x,%08x,%08x,%08x selected=%08x,%08x,%08x,%08x,%08x,%08x,%08x,%08x mapped=%08x,%08x,%08x,%08x,%08x,%08x,%08x,%08x",
++                     trace.record, i,
++                     reference_qmd[i], reference_qmd[i + 1], reference_qmd[i + 2], reference_qmd[i + 3], reference_qmd[i + 4], reference_qmd[i + 5], reference_qmd[i + 6], reference_qmd[i + 7],
++                     qmd[i], qmd[i + 1], qmd[i + 2], qmd[i + 3], qmd[i + 4], qmd[i + 5], qmd[i + 6], qmd[i + 7],
++                     ((uint32_t *)qmd_map)[i], ((uint32_t *)qmd_map)[i + 1], ((uint32_t *)qmd_map)[i + 2], ((uint32_t *)qmd_map)[i + 3], ((uint32_t *)qmd_map)[i + 4], ((uint32_t *)qmd_map)[i + 5], ((uint32_t *)qmd_map)[i + 6], ((uint32_t *)qmd_map)[i + 7]);
++            }
++         }
 +
 +         if (source_map_match && order_match) {
 +            if (!nvk_qmd_upload_diag.first_valid) {
@@ -2000,50 +2099,35 @@ diff --git a/src/nouveau/vulkan/nvk_cmd_dispatch.c b/src/nouveau/vulkan/nvk_cmd_
 +            nvk_qmd_upload_diag.previous_valid = false;
 +         }
 +      }
-    }
- 
-    *qmd_addr_out = qmd_addr;
-    if (root_desc_addr_out != NULL)
-       *root_desc_addr_out = root_desc_addr;
- 
+@@ -201,0 +721,5 @@
 +   if (detailed_trace)
 +      nvk_root_trace_log(
 +         "FG2_ROOT_DIAG phase=qmd_upload record=%u cmd=%p qmd_gpu_va=0x%016" PRIx64 " root_gpu_va=0x%016" PRIx64,
 +         trace.record, (void *)cmd, qmd_addr, root_desc_addr);
 +
-    return VK_SUCCESS;
- }
- 
-@@ -257,11 +652,17 @@
- 
-    uint32_t base_workgroup[3] = { baseGroupX, baseGroupY, baseGroupZ };
-    uint32_t global_size[3] = { groupCountX, groupCountY, groupCountZ };
+@@ -259,0 +784,6 @@
 +   struct nvk_root_trace_record trace = {0};
 +   const bool trace_this = nvk_root_trace_get_record(cmd, &trace);
 +   const bool detailed_trace = trace_this && trace.record <= 2;
 +   static uint32_t dispatch_count;
 +   if (trace_this)
 +      dispatch_count++;
-    nvk_flush_compute_state(cmd, base_workgroup, global_size);
- 
+@@ -262 +792 @@
 -   uint64_t qmd_addr = 0;
 +   uint64_t qmd_addr = 0, root_desc_addr = 0;
-    VkResult result = nvk_cmd_flush_cs_qmd(cmd, &cmd->state, global_size,
+@@ -264 +794 @@
 -                                          &qmd_addr, NULL);
 +                                          &qmd_addr, &root_desc_addr);
-    if (result != VK_SUCCESS) {
-       vk_command_buffer_set_error(&cmd->vk, result);
-       return;
-@@ -281,6 +682,38 @@
-    P_MTHD(p, NVA0C0, SEND_PCAS_A);
-    P_NVA0C0_SEND_PCAS_A(p, qmd_addr >> 8);
- 
+@@ -282,0 +813,55 @@
++
 +   if (trace_this) {
 +      const uint32_t pcas = qmd_addr >> 8;
 +      const uint64_t dispatch_addr = (uint64_t)pcas << 8;
 +      const bool dispatch_match = dispatch_addr == qmd_addr;
 +      if ((nvk_qmd_upload_diag.address_control_enabled ||
-+           nvk_qmd_upload_diag.address_fresh_enabled) && dispatch_match)
++           nvk_qmd_upload_diag.address_fresh_enabled ||
++           nvk_qmd_upload_diag.root_address_control_enabled ||
++           nvk_qmd_upload_diag.root_address_fresh_enabled) && dispatch_match)
 +         nvk_qmd_upload_diag.dispatch_match_count++;
 +      if (detailed_trace)
 +         nvk_root_trace_log(
@@ -2068,8 +2152,25 @@ diff --git a/src/nouveau/vulkan/nvk_cmd_dispatch.c b/src/nouveau/vulkan/nvk_cmd_
 +               nvk_qmd_upload_diag.dispatch_match_count,
 +               dispatch_count == trace.record);
 +      }
++      if (nvk_qmd_upload_diag.root_address_control_enabled ||
++          nvk_qmd_upload_diag.root_address_fresh_enabled) {
++         nvk_root_trace_log(
++            "FG2_ROOT_ADDRESS phase=dispatch path=%s record=%u selected_root_gpu_va=0x%016" PRIx64 " selected_qmd_gpu_va=0x%016" PRIx64 " pcas=0x%08" PRIx64 " dispatch_qmd_gpu_va=0x%016" PRIx64 " address_match=%u order_match=%u",
++            nvk_qmd_upload_diag.root_address_fresh_enabled ? "fresh" : "control",
++            trace.record, root_desc_addr, qmd_addr, (uint64_t)pcas,
++            dispatch_addr, dispatch_match, dispatch_count == trace.record);
++         if (trace.record == 64)
++            nvk_root_trace_log(
++               "FG2_ROOT_ADDRESS phase=aggregate path=%s records=64 root_primary_copies=%u/64 root_alternate_copies=%u/64 root_transitions=%u/63 qmd_copies=%u/64 qmd_transitions=%u/63 root_decode_matches=%u/64 qmd_outside_mask_matches=%u/64 dispatch_matches=%u/64 footprint=4608 remaining=60928 incremental_live=2048 ordering_complete=%u fault_state=NO_DRIVER_FAULT_REPORTED gpu_visible=UNPROVEN",
++               nvk_qmd_upload_diag.root_address_fresh_enabled ? "fresh" : "control",
++               nvk_qmd_upload_diag.root_exact_copy_count,
++               nvk_qmd_upload_diag.alternate_root_exact_copy_count,
++               nvk_qmd_upload_diag.root_fresh_transition_count,
++               nvk_qmd_upload_diag.exact_copy_count,
++               nvk_qmd_upload_diag.fresh_transition_count,
++               nvk_qmd_upload_diag.root_decode_match_count,
++               nvk_qmd_upload_diag.qmd_outside_mask_match_count,
++               nvk_qmd_upload_diag.dispatch_match_count,
++               dispatch_count == trace.record);
++      }
 +   }
-+
-    if (nvk_cmd_buffer_compute_cls(cmd) <= TURING_COMPUTE_A) {
-       P_IMMD(p, NVA0C0, SEND_SIGNALING_PCAS_B, {
-             .invalidate = INVALIDATE_TRUE,

@@ -86,10 +86,12 @@ Acceptance:
 Current result: immutable artifacts `4b1ba31` and shared-layout controlled variant `d9dfc65` each
 executed all 64 iterations on real hardware, but only the first iteration matched. Both produced the
 same exact stale compute-seed signature. The shared-layout/cache-interaction hypothesis is
-`REJECTED`. Retained identity evidence proves current root bytes are encoded in a byte-identical QMD
-copy at the reused QMD GPU VA and selected by direct `PCAS`; the immediate discriminating boundary
-is now whether changing only the QMD storage address relative to the preceding dispatch changes GPU
-consumption. FG-2 remains `BLOCKED` pending that separately controlled hardware experiment.
+`REJECTED`. The completed two-slot QMD-address experiment produced
+`specific_qmd_address_change_insufficient`: 63/63 adjacent QMD-address transitions retained the
+exact stale signature. The immediate discriminating boundary is now whether changing only the
+compute-root GPU VA relative to the preceding dispatch changes GPU consumption while fresh-QMD
+behavior is held constant. FG-2 remains `BLOCKED` pending that separately controlled hardware
+experiment.
 
 ---
 
