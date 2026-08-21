@@ -40,22 +40,22 @@
 ## 6. Run and gate on the real-Tegra control
 
 - [x] 6.1 Commit the exact experiment source and verify both recorded artifacts and shader hashes derive from that immutable revision before contacting hardware.
-- [ ] 6.2 Run only the control for all 64 iterations on real Switch/Tegra hardware, retain the complete unfiltered stream, and inspect it before filtering for unexpected warnings, timeout, `ERRNOTIF`, `ERRINFO`, or another GPU fault.
-- [ ] 6.3 Require the control to reproduce iteration-1 seed-5 exact output, the exact iterations-2-64 `0xfab61a38`/`0xc17a35a5` stale signature, reused root and primary QMD addresses, complete QMD equality/copy evidence, `PCAS` correlation, ordinary command behavior, and a clean interpretable fault state.
-- [ ] 6.4 If any control prerequisite fails, retain the complete evidence, classify the comparison `inconclusive`, do not run the variant, and stop without widening the experiment.
+- [x] 6.2 Run only the control for all 64 iterations on real Switch/Tegra hardware, retain the complete unfiltered stream, and inspect it before filtering for unexpected warnings, timeout, `ERRNOTIF`, `ERRINFO`, or another GPU fault.
+- [x] 6.3 Require the control to reproduce iteration-1 seed-5 exact output, the exact iterations-2-64 `0xfab61a38`/`0xc17a35a5` stale signature, reused root and primary QMD addresses, complete QMD equality/copy evidence, `PCAS` correlation, ordinary command behavior, and a clean interpretable fault state.
+- [x] 6.4 If any control prerequisite fails, retain the complete evidence, classify the comparison `inconclusive`, do not run the variant, and stop without widening the experiment.
 
 ## 7. Run the gated fresh-address variant
 
-- [ ] 7.1 Only after task 6.3 passes, run the variant for the unchanged 64 iterations on the same console/configuration and retain the complete unfiltered combined stream.
-- [ ] 7.2 Inspect the entire variant log before filtering and prove all 63 consecutive selected QMD-address transitions are fresh, all 64 selected mapped addresses equal the direct-dispatch/`PCAS` addresses, root behavior matches control, and ordering is complete.
-- [ ] 7.3 Prove with exact comparisons that each generated QMD equals its selected mapped copy and the frozen naturally generated payload, compare the bounded complete payload records across artifacts, and reject hashes as the authority for equality.
-- [ ] 7.4 Compare all 64 exact pixels/checksums and the independent oracle, selector/path state, method structure, warnings, and GPU fault/error state against the valid control; retain any new output signature without interpretation beyond the specified classification gates.
+- [x] 7.1 Only after task 6.3 passes, run the variant for the unchanged 64 iterations on the same console/configuration and retain the complete unfiltered combined stream.
+- [x] 7.2 Inspect the entire variant log before filtering and prove all 63 consecutive selected QMD-address transitions are fresh, all 64 selected mapped addresses equal the direct-dispatch/`PCAS` addresses, root behavior matches control, and ordering is complete.
+- [x] 7.3 Prove with exact comparisons that each generated QMD equals its selected mapped copy and the frozen naturally generated payload, compare the bounded complete payload records across artifacts, and reject hashes as the authority for equality.
+- [x] 7.4 Compare all 64 exact pixels/checksums and the independent oracle, selector/path state, method structure, warnings, and GPU fault/error state against the valid control; retain any new output signature without interpretation beyond the specified classification gates.
 
 ## 8. Classify, retain, and prevent premature promotion
 
-- [ ] 8.1 Produce the paired evidence table covering selector, iteration/seed, root source/mapped seed and addresses, complete QMD identities and exact equalities, primary/secondary/selected/previous QMD VAs, freshness, dispatch/`PCAS` correlation, ordering, pixel/checksum/oracle, artifact/shader provenance, and GPU fault state.
-- [ ] 8.2 Classify exactly one justified result: `qmd_address_reuse_hypothesis_supported_experiment_only`, `specific_qmd_address_change_insufficient`, `behavior_changed_unresolved`, or `inconclusive`; preserve the precise scope and do not generalize to all QMD, launch-state, cache, allocator, or GPU-consumption behavior.
-- [ ] 8.3 Retain immutable raw logs and a complete hardware record under `docs/testing/`, add the narrow causal finding under `docs/research/`, and update `docs/status/CAPABILITY_MATRIX.md` only with facts justified by the executed hardware evidence while keeping FG-2 `BLOCKED` and all prior negative evidence intact.
-- [ ] 8.4 If the variant passes, record that it is not a production fix and stop with a requirement for a new, independently specified and run original unmodified image-chain acceptance test; do not create or run that acceptance change inside this apply workflow.
-- [ ] 8.5 If the output changes without passing, require a smaller separately specified follow-up; if it retains the exact stale signature, record only that this two-slot consecutive-address intervention was insufficient.
-- [ ] 8.6 Leave the experiment selectors disabled or remove the experimental slot-selection hunk after evidence capture, do not change FG-2 status, and do not start, design, or modify FG-3.
+- [x] 8.1 Produce the paired evidence table covering selector, iteration/seed, root source/mapped seed and addresses, complete QMD identities and exact equalities, primary/secondary/selected/previous QMD VAs, freshness, dispatch/`PCAS` correlation, ordering, pixel/checksum/oracle, artifact/shader provenance, and GPU fault state.
+- [x] 8.2 Classify exactly one justified result: `qmd_address_reuse_hypothesis_supported_experiment_only`, `specific_qmd_address_change_insufficient`, `behavior_changed_unresolved`, or `inconclusive`; preserve the precise scope and do not generalize to all QMD, launch-state, cache, allocator, or GPU-consumption behavior.
+- [x] 8.3 Retain immutable raw logs and a complete hardware record under `docs/testing/`, add the narrow causal finding under `docs/research/`, and update `docs/status/CAPABILITY_MATRIX.md` only with facts justified by the executed hardware evidence while keeping FG-2 `BLOCKED` and all prior negative evidence intact.
+- [x] 8.4 If the variant passes, record that it is not a production fix and stop with a requirement for a new, independently specified and run original unmodified image-chain acceptance test; do not create or run that acceptance change inside this apply workflow. (Evaluated: variant did not pass, so the conditional acceptance-test gate was not entered.)
+- [x] 8.5 If the output changes without passing, require a smaller separately specified follow-up; if it retains the exact stale signature, record only that this two-slot consecutive-address intervention was insufficient.
+- [x] 8.6 Leave the experiment selectors disabled or remove the experimental slot-selection hunk after evidence capture, do not change FG-2 status, and do not start, design, or modify FG-3.
